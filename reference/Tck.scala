@@ -13,11 +13,20 @@ object RenderedType {
 case class ConformanceQuery(lhs: String, rhs: String, expect: Boolean)
 object ConformanceQuery { implicit val rw: ReadWriter[ConformanceQuery] = macroRW }
 
+/**
+ * A named type expression. Resolved either at the top level of the synthetic
+ * corpus object (no anchor) or, when `anchor` is set, textually at the
+ * `/*ANCHOR <id>*/` marker in `source.scala` — required for context-dependent
+ * types such as `this.type`, self-type references, and `this.SomeMember`.
+ */
+case class TypeDecl(name: String, expr: String, anchor: Option[String] = None)
+object TypeDecl { implicit val rw: ReadWriter[TypeDecl] = macroRW }
+
 /** One corpus entry, loaded from `tck.json` + `source.scala`. */
 case class CorpusEntry(
     description: String,
     concepts: List[String],
-    types: Map[String, String],
+    types: List[TypeDecl],
     conformance: List[ConformanceQuery],
     baseTypeSeq: List[String]
 )

@@ -154,6 +154,46 @@ breaker, and the rule is tightened here.
 
 ---
 
+## 4a. Referencing context-dependent types (anchors)
+
+Most query types can be named from a single neutral scope (the synthetic corpus
+object): `Dog`, `Box[Dog]`, `HCons[Dog, HNil]#Head`. But some types **only exist
+relative to a specific `this`** and cannot be named from outside the template
+that introduces it:
+
+- `this.type` of a particular trait/class,
+- an abstract type member relative to `this` (`this.T`),
+- a **self-type** witness: with `trait AnimalBox { self: Animal => }`, the fact
+  that the instance is an `Animal` is observable only through `AnimalBox.this`.
+
+The corpus expresses these with **anchors**: a `/*ANCHOR <id>*/` marker placed at
+a statement position inside the relevant template in `source.scala`. A type query
+may name an anchor; the engine resolves the query's expression *as if written at
+that marker*, so `this`, the self-type, and in-scope members resolve correctly.
+
+```scala
+trait AnimalBox { self: Animal =>
+  type T
+  /*ANCHOR inAnimalBox*/
+}
+```
+```json
+{ "name": "AnimalBoxThis", "expr": "this.type", "anchor": "inAnimalBox" }
+```
+
+Both engines must honor anchors identically:
+
+- **scalac** splices `type __q = <expr>` in at the marker and reads the resolved
+  type off the typed tree (owner prefix + self-type intact).
+- **IntelliJ** resolves `<expr>` with the PSI element at the marker offset as the
+  resolution context (`createTypeElementFromText(expr, contextAtAnchor)`).
+
+This is where SCL-21947 lives: `AnimalBox <:< Animal` is **false** (the trait
+itself is not an `Animal`), but `AnimalBox.this.type <:< Animal` is **true**, and
+the self-type even participates in `AnimalBox.this`'s base type sequence
+(`AnimalBox with Animal` heads it). An engine that resolves `this.type` without
+the self-type context gets both the conformance and the sequence wrong.
+
 ## 5. Conformance (`A <:< B`)
 
 The TCK treats conformance as **human-authored ground truth** (we know

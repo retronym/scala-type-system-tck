@@ -11,9 +11,11 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 
 - **Corpus** = language-neutral data. Each entry is a directory under `corpus/`:
   - `source.scala` — the preamble (type/class/trait declarations).
-  - `tck.json` — `description`, `concepts`, named `types` (type-expression
-    strings), `conformance` queries (with human `expect`), `baseTypeSeq` query
-    list.
+  - `tck.json` — `description`, `concepts`, `types` (each `{name, expr, anchor?}`),
+    `conformance` queries (with human `expect`), `baseTypeSeq` query list.
+  - **Anchors**: context-dependent types (`this.type`, `this.T`, self-type
+    references) name a `/*ANCHOR id*/` marker in `source.scala`; the engine
+    resolves the expression at that marker's lexical context. See SPEC §4a.
   - `expected.json` — **generated** goldens: baseTypeSeq results as canonical
     `RenderedType` lists, plus the scalac conformance results.
 - **TckEngine** (abstract) — `conforms`, `baseTypeSeq`, `render`. Two impls:
@@ -33,10 +35,13 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Golden generation + verification CLI (`Main generate` / `Main verify`).
 - [x] munit test running corpus through ScalacEngine.
 - [x] Corpus 00–03: nominal, variance, refinement, projection/HList.
+- [x] Anchors: `/*ANCHOR id*/` markers + `anchor` on type decls; engine splices
+      query aliases at the marker and recovers types from the typed tree.
+- [x] Corpus 04: context-dependent types via self-type (SCL-21947 shape).
 
 ### TODO (next phases)
-- [ ] Corpus 04: path-dependent types via self-type (SCL-21947 shape).
-- [ ] Corpus 05: refinement substitution through a projection (SCL-21585 shape).
+- [ ] Corpus 05: refinement substitution through a projection (SCL-21585 shape,
+      the full reproduction beyond the 03 warm-up).
 - [ ] Tighten canonical rendering for refinements / existentials / singletons.
 - [ ] L1–L4 invariant checks in the runner.
 - [ ] `IntellijPsiEngine` in intellij-scala consuming `corpus/` + goldens.

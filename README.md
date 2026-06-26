@@ -28,8 +28,10 @@ reference/                  scala-cli module: the scalac reference engine
 
 The corpus is **language-neutral data**. A type is referenced abstractly by a
 *type-expression string* resolved in the preamble's scope — scalac resolves it as
-a `type` alias, IntelliJ via `createTypeElementFromText`. The same corpus and
-goldens drive both engines (see `TckEngine` in `reference/Tck.scala`).
+a `type` alias, IntelliJ via `createTypeElementFromText`. Context-dependent types
+(`this.type`, `this.T`, self-type references) name a `/*ANCHOR id*/` marker in
+`source.scala` and are resolved at that location (see SPEC §4a). The same corpus
+and goldens drive both engines (see `TckEngine` in `reference/Tck.scala`).
 
 ## Usage
 

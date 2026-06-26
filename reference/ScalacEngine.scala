@@ -27,15 +27,32 @@ object ScalacEngine extends TckEngine {
   private val wrapperObj = "Corpus"
   private val queryPrefix = "__q_"
 
-  /** Wrap the preamble and the query type-aliases into a single compilable unit. */
+  /** `type __q_<name> = <expr>` for one query. */
+  private def alias(d: TypeDecl): String = s"type $queryPrefix${d.name} = ${d.expr}"
+
+  /**
+   * Wrap the preamble and the query aliases into one compilable unit. Anchored
+   * queries are spliced in at their `/*ANCHOR id*/` marker (so they resolve in
+   * that template's context); the rest become top-level members of the corpus
+   * object.
+   */
   private def wrap(loaded: LoadedEntry): String = {
-    val aliases = loaded.entry.types.map { case (k, expr) =>
-      s"  type $queryPrefix$k = $expr"
-    }.mkString("\n")
+    val (anchored, topLevel) = loaded.entry.types.partition(_.anchor.isDefined)
+
+    var body = loaded.source
+    anchored.groupBy(_.anchor.get).foreach { case (id, decls) =>
+      val marker = s"/*ANCHOR $id*/"
+      require(body.contains(marker), s"[${loaded.id}] anchor '$id' not found in source.scala")
+      // Splice on the marker's own line: a leading `;` keeps it a valid statement
+      // position whether or not the marker starts the template body.
+      body = body.replace(marker, marker + " ; " + decls.map(alias).mkString(" ; "))
+    }
+
+    val topAliases = topLevel.map("  " + alias(_)).mkString("\n")
     s"""package $wrapperPkg
        |object $wrapperObj {
-       |${loaded.source.linesIterator.map("  " + _).mkString("\n")}
-       |$aliases
+       |${body.linesIterator.map("  " + _).mkString("\n")}
+       |$topAliases
        |}
        |""".stripMargin
   }
@@ -59,15 +76,27 @@ object ScalacEngine extends TckEngine {
         errors.map(i => s"  ${i.pos.line}: ${i.msg}").mkString("\n") +
         "\n--- source ---\n" + wrap(loaded))
 
-    val corpusModuleClass = rootMirror.staticModule(s"$wrapperPkg.$wrapperObj").moduleClass
-    val prefix = corpusModuleClass.thisType
-    val resolved: Map[String, global.Type] = loaded.entry.types.keys.map { k =>
-      val sym = corpusModuleClass.info.decl(newTypeName(queryPrefix + k))
-      require(sym != NoSymbol, s"[${loaded.id}] unresolved query type '$k'")
-      // typeRef + dealias robustly expands the alias to its RHS with the right prefix.
-      k -> typeRef(prefix, sym, Nil).dealias
+    // Recover each query alias from the typed tree: its symbol's info is the RHS
+    // resolved in its lexical context (owner prefix, self-type), wherever spliced.
+    val bySym = scala.collection.mutable.Map[String, Symbol]()
+    def collect(t: Tree): Unit = {
+      t match {
+        case td: TypeDef if td.name.startsWith(queryPrefix) =>
+          bySym(td.name.toString.stripPrefix(queryPrefix)) = td.symbol
+        case _ =>
+      }
+      t.children.foreach(collect)
+    }
+    run.units.foreach(u => collect(u.body))
+
+    val resolved: Map[String, global.Type] = loaded.entry.types.map { d =>
+      val sym = bySym.getOrElse(d.name,
+        sys.error(s"[${loaded.id}] unresolved query type '${d.name}'"))
+      // typeRef through the owner's thisType + dealias expands the alias in-context.
+      d.name -> typeRef(sym.owner.thisType, sym, Nil).dealias
     }.toMap
 
+    val corpusModuleClass = rootMirror.staticModule(s"$wrapperPkg.$wrapperObj").moduleClass
     new Ctx(global, corpusModuleClass.asInstanceOf[Global#Symbol], resolved)
   }
 
