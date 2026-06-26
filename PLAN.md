@@ -41,12 +41,24 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Corpus 05: refinement substitution through a projection (SCL-21585 proper —
       `(M { type A = B })#A`, via type-alias projection, and combined with `with`).
 
+### Done (IntelliJ side — in the intellij-scala repo, branch `scala-typesystem-tck`)
+- [x] PSI engine scaffold: `lang/typeSystemTck/{TckCorpus,TypeSystemTckTest}.scala`.
+      Loads this corpus directly from `~/code/scala-type-system-tck` (Gson),
+      splices `__q_` aliases (anchors via lexical placement), reads
+      `ScTypeAliasDefinition.aliasedType`, runs `conforms` (hard) + `BaseTypes.get`
+      (set membership vs golden). Renderer normalizes `canonicalText` to SPEC §4.
+      Note: `BaseTypes.get` is **unordered** (`HashMap.values`) — order can't be
+      checked yet; membership only.
+
 ### TODO (next phases)
+- [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
+      set) can be checked — the crux of the residual SCL-21585/21947 ordering bug.
 - [ ] Tighten canonical rendering for refinements / existentials / singletons.
 - [ ] L1–L4 invariant checks in the runner.
-- [ ] `IntellijPsiEngine` in intellij-scala consuming `corpus/` + goldens.
 - [ ] Depth/approximation-seam recording (SPEC §3.3) in goldens.
 - [ ] Scala 3 reference engine (SPEC §7).
+- [ ] Consume the corpus as a build dependency (unpack in the build) rather than
+      referencing the sibling checkout.
 - [ ] CI: regenerate goldens, assert no drift.
 
 ## Conventions
