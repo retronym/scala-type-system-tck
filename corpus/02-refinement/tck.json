@@ -1,0 +1,16 @@
+{
+  "description": "Structural refinement with a type member; refinement subtyping.",
+  "concepts": ["refinement", "type-member"],
+  "types": {
+    "Container": "Container",
+    "ContainerOfDog": "Container { type Elem = Dog }",
+    "ContainerBounded": "Container { type Elem <: Animal }"
+  },
+  "conformance": [
+    { "lhs": "ContainerOfDog", "rhs": "Container", "expect": true },
+    { "lhs": "ContainerOfDog", "rhs": "ContainerBounded", "expect": true },
+    { "lhs": "Container", "rhs": "ContainerOfDog", "expect": false },
+    { "lhs": "ContainerBounded", "rhs": "ContainerOfDog", "expect": false }
+  ],
+  "baseTypeSeq": ["ContainerOfDog", "Container"]
+}

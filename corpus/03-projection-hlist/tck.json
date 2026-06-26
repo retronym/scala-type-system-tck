@@ -1,0 +1,21 @@
+{
+  "description": "Type-member projection through an HList-style encoding (SCL-21585 shape).",
+  "concepts": ["type-projection", "type-member-substitution", "hlist"],
+  "types": {
+    "L": "HCons[Dog, HNil]",
+    "LHead": "HCons[Dog, HNil]#Head",
+    "LTail": "HCons[Dog, HNil]#Tail",
+    "LTailHead": "HCons[Dog, HNil]#Tail#Head",
+    "Animal": "Animal",
+    "Dog": "Dog",
+    "HNil": "HNil"
+  },
+  "conformance": [
+    { "lhs": "LHead", "rhs": "Dog", "expect": true },
+    { "lhs": "LHead", "rhs": "Animal", "expect": true },
+    { "lhs": "Dog", "rhs": "LHead", "expect": true },
+    { "lhs": "LTail", "rhs": "HNil", "expect": true },
+    { "lhs": "LTailHead", "rhs": "HNil", "expect": true }
+  ],
+  "baseTypeSeq": ["L", "Dog"]
+}
