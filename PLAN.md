@@ -38,10 +38,10 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Anchors: `/*ANCHOR id*/` markers + `anchor` on type decls; engine splices
       query aliases at the marker and recovers types from the typed tree.
 - [x] Corpus 04: context-dependent types via self-type (SCL-21947 shape).
+- [x] Corpus 05: refinement substitution through a projection (SCL-21585 proper —
+      `(M { type A = B })#A`, via type-alias projection, and combined with `with`).
 
 ### TODO (next phases)
-- [ ] Corpus 05: refinement substitution through a projection (SCL-21585 shape,
-      the full reproduction beyond the 03 warm-up).
 - [ ] Tighten canonical rendering for refinements / existentials / singletons.
 - [ ] L1–L4 invariant checks in the runner.
 - [ ] `IntellijPsiEngine` in intellij-scala consuming `corpus/` + goldens.
