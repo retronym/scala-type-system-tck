@@ -23,7 +23,7 @@
   ],
   "baseTypeSeq": {
     "O1Inner": [
-      "Outer#Inner",
+      "O1.Inner",
       "java.lang.Object",
       "scala.Any"
     ]

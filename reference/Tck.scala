@@ -28,7 +28,11 @@ case class CorpusEntry(
     concepts: List[String],
     types: List[TypeDecl],
     conformance: List[ConformanceQuery],
-    baseTypeSeq: List[String]
+    baseTypeSeq: List[String],
+    // Term probes: `val __t_<name> = <expr>` spliced (optionally at an anchor),
+    // whose *inferred type* is read — exercises member resolution / asSeenFrom /
+    // ThisTypeSubstitution. `expr` is a term, `anchor` reuses the marker mechanism.
+    termTypes: List[TypeDecl] = Nil
 )
 object CorpusEntry { implicit val rw: ReadWriter[CorpusEntry] = macroRW }
 
@@ -45,7 +49,9 @@ case class Golden(
     // Linearization `baseClasses` (mixin-order sensitive) — the ordered list of
     // base-class names. Distinct from baseTypeSeq order (SPEC §2). Defaulted so
     // older goldens without it still parse.
-    baseClasses: Map[String, List[String]] = Map.empty
+    baseClasses: Map[String, List[String]] = Map.empty,
+    // Inferred type of each term probe (member resolution / asSeenFrom result).
+    termTypes: Map[String, RenderedType.T] = Map.empty
 )
 object Golden { implicit val rw: ReadWriter[Golden] = macroRW }
 
@@ -73,14 +79,18 @@ trait TckEngine {
   /** The linearization `baseClasses` of the named type, as ordered class names (SPEC §2). */
   def baseClasses(ctx: Ctx, typeName: String): List[String]
 
-  /** Compute the full actual result (conformance + baseTypeSeq + baseClasses) for one entry. */
+  /** The inferred type of the term probe named `name` (member/asSeenFrom result). */
+  def termType(ctx: Ctx, name: String): RenderedType.T
+
+  /** Compute the full actual result for one entry. */
   final def run(loaded: LoadedEntry): Golden = {
     val ctx = load(loaded)
     val conf = loaded.entry.conformance.map(q =>
       ConformanceResult(q.lhs, q.rhs, conforms(ctx, q.lhs, q.rhs)))
     val bts = loaded.entry.baseTypeSeq.map(t => t -> baseTypeSeq(ctx, t)).toMap
     val bcs = loaded.entry.baseTypeSeq.map(t => t -> baseClasses(ctx, t)).toMap
-    Golden(conf, bts, bcs)
+    val tts = loaded.entry.termTypes.map(d => d.name -> termType(ctx, d.name)).toMap
+    Golden(conf, bts, bcs, tts)
   }
 }
 

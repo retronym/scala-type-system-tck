@@ -20,39 +20,45 @@ object ScalacEngine extends TckEngine {
   final class Ctx(
       val global: Global,
       val corpusModuleClass: Global#Symbol,
-      val types: Map[String, Global#Type]
+      val types: Map[String, Global#Type],
+      val terms: Map[String, Global#Type]
   )
 
   private val wrapperPkg = "__tck"
   private val wrapperObj = "Corpus"
   private val queryPrefix = "__q_"
+  private val termPrefix = "__t_"
 
-  /** `type __q_<name> = <expr>` for one query. */
+  /** `type __q_<name> = <expr>` for a type query. */
   private def alias(d: TypeDecl): String = s"type $queryPrefix${d.name} = ${d.expr}"
+  /** `val __t_<name> = <expr>` for a term probe (its inferred type is read). */
+  private def probe(d: TypeDecl): String = s"val $termPrefix${d.name} = ${d.expr}"
 
   /**
-   * Wrap the preamble and the query aliases into one compilable unit. Anchored
-   * queries are spliced in at their `/*ANCHOR id*/` marker (so they resolve in
-   * that template's context); the rest become top-level members of the corpus
-   * object.
+   * Wrap the preamble plus the query aliases and term probes into one compilable
+   * unit. Anchored decls are spliced at their `/*ANCHOR id*/` marker (so they
+   * resolve in that template's context); the rest become top-level members.
    */
   private def wrap(loaded: LoadedEntry): String = {
-    val (anchored, topLevel) = loaded.entry.types.partition(_.anchor.isDefined)
+    val decls: List[(Option[String], String)] =
+      loaded.entry.types.map(d => d.anchor -> alias(d)) ++
+        loaded.entry.termTypes.map(d => d.anchor -> probe(d))
+    val (anchored, topLevel) = decls.partition(_._1.isDefined)
 
     var body = loaded.source
-    anchored.groupBy(_.anchor.get).foreach { case (id, decls) =>
+    anchored.groupBy(_._1.get).foreach { case (id, ds) =>
       val marker = s"/*ANCHOR $id*/"
       require(body.contains(marker), s"[${loaded.id}] anchor '$id' not found in source.scala")
       // Splice on the marker's own line: a leading `;` keeps it a valid statement
       // position whether or not the marker starts the template body.
-      body = body.replace(marker, marker + " ; " + decls.map(alias).mkString(" ; "))
+      body = body.replace(marker, marker + " ; " + ds.map(_._2).mkString(" ; "))
     }
 
-    val topAliases = topLevel.map("  " + alias(_)).mkString("\n")
+    val topDecls = topLevel.map("  " + _._2).mkString("\n")
     s"""package $wrapperPkg
        |object $wrapperObj {
        |${body.linesIterator.map("  " + _).mkString("\n")}
-       |$topAliases
+       |$topDecls
        |}
        |""".stripMargin
   }
@@ -76,13 +82,17 @@ object ScalacEngine extends TckEngine {
         errors.map(i => s"  ${i.pos.line}: ${i.msg}").mkString("\n") +
         "\n--- source ---\n" + wrap(loaded))
 
-    // Recover each query alias from the typed tree: its symbol's info is the RHS
-    // resolved in its lexical context (owner prefix, self-type), wherever spliced.
-    val bySym = scala.collection.mutable.Map[String, Symbol]()
+    // Recover query aliases (TypeDef) and term probes (ValDef) from the typed
+    // tree: their symbols' types are resolved in their lexical context (owner
+    // prefix, self-type), wherever spliced.
+    val typeSyms = scala.collection.mutable.Map[String, Symbol]()
+    val termSyms = scala.collection.mutable.Map[String, Symbol]()
     def collect(t: Tree): Unit = {
       t match {
         case td: TypeDef if td.name.startsWith(queryPrefix) =>
-          bySym(td.name.toString.stripPrefix(queryPrefix)) = td.symbol
+          typeSyms(td.name.toString.stripPrefix(queryPrefix)) = td.symbol
+        case vd: ValDef if vd.name.toString.trim.startsWith(termPrefix) =>
+          termSyms(vd.name.toString.trim.stripPrefix(termPrefix)) = vd.symbol
         case _ =>
       }
       t.children.foreach(collect)
@@ -90,14 +100,20 @@ object ScalacEngine extends TckEngine {
     run.units.foreach(u => collect(u.body))
 
     val resolved: Map[String, global.Type] = loaded.entry.types.map { d =>
-      val sym = bySym.getOrElse(d.name,
+      val sym = typeSyms.getOrElse(d.name,
         sys.error(s"[${loaded.id}] unresolved query type '${d.name}'"))
       // typeRef through the owner's thisType + dealias expands the alias in-context.
       d.name -> typeRef(sym.owner.thisType, sym, Nil).dealias
     }.toMap
 
+    val terms: Map[String, global.Type] = loaded.entry.termTypes.map { d =>
+      val sym = termSyms.getOrElse(d.name,
+        sys.error(s"[${loaded.id}] unresolved term probe '${d.name}'"))
+      d.name -> sym.info.resultType // the inferred type of `val __t_<name> = <expr>`
+    }.toMap
+
     val corpusModuleClass = rootMirror.staticModule(s"$wrapperPkg.$wrapperObj").moduleClass
-    new Ctx(global, corpusModuleClass.asInstanceOf[Global#Symbol], resolved)
+    new Ctx(global, corpusModuleClass.asInstanceOf[Global#Symbol], resolved, terms)
   }
 
   def conforms(ctx: Ctx, lhs: String, rhs: String): Boolean = {
@@ -118,6 +134,9 @@ object ScalacEngine extends TckEngine {
     val tp = ctx.types(typeName).asInstanceOf[g.Type]
     tp.baseClasses.map(symName(ctx, _))
   }
+
+  def termType(ctx: Ctx, name: String): RenderedType.T =
+    render(ctx, ctx.terms(name).asInstanceOf[ctx.global.Type])
 
   /** Render a class symbol: corpus-relative (`Outer#Inner`) or fully-qualified. */
   private def symName(ctx: Ctx, sym0: Global#Symbol): String = {
@@ -168,11 +187,26 @@ object ScalacEngine extends TckEngine {
         parts.mkString("#")
       } else sym.fullName
 
+    // Render a path-dependent prefix (`X.this`, `p.q`) when it is a corpus-owned
+    // this-type or singleton — crucial for distinguishing `Impl.this.Tree` from
+    // `Api#Tree` (SCL-21947). Library and trivial corpus-module prefixes -> None.
+    def prefixStr(pre: Type): Option[String] = pre match {
+      case ThisType(s) if s != corpusModuleClass && isCorpusOwned(s) && !s.isPackageClass =>
+        Some(renderSym(s) + ".this")
+      case SingleType(p, s) if isCorpusOwned(s) && !s.isPackageClass =>
+        val nm = s.name.toString.trim
+        Some(prefixStr(p).map(_ + "." + nm).getOrElse(nm))
+      case _ => None
+    }
+
     def go(t: Global#Type): String = t.asInstanceOf[g.Type].dealias match {
       case TypeRef(_, sym, args) if sym.isRefinementClass =>
         go(sym.info) // expand the refinement structurally
-      case TypeRef(_, sym, args) =>
-        val base = renderSym(sym)
+      case TypeRef(pre, sym, args) =>
+        val base = prefixStr(pre) match {
+          case Some(p) => s"$p.${sym.name.toString.trim}"
+          case None    => renderSym(sym)
+        }
         if (args.isEmpty) base else s"$base[${args.map(go).mkString(", ")}]"
       case RefinedType(parents, decls) =>
         val ps = parents.map(go).mkString(" with ")
