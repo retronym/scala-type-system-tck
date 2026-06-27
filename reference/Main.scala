@@ -38,6 +38,9 @@ object Main {
         g.termTypes.foreach { case (t, ty) =>
           println(s"  termType($t): $ty")
         }
+        g.baseTypes.foreach { case (t, ty) =>
+          println(s"  baseType($t): $ty")
+        }
     }
 
   /** Returns true if everything passes. */
@@ -80,6 +83,13 @@ object Main {
             if (got != expected) {
               entryOk = false
               println(s"[${e.id}] TERMTYPE($t) drift: golden=$expected actual=$got")
+            }
+          }
+          g.baseTypes.foreach { case (t, expected) =>
+            val got = actual.baseTypes.getOrElse(t, "")
+            if (got != expected) {
+              entryOk = false
+              println(s"[${e.id}] BASETYPE($t) drift: golden=$expected actual=$got")
             }
           }
       }

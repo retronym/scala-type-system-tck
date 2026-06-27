@@ -17,5 +17,9 @@
     { "lhs": "SinkMerge", "rhs": "SinkAnimal", "expect": true },
     { "lhs": "SinkDog", "rhs": "SinkMerge", "expect": false }
   ],
-  "baseTypeSeq": ["BoxMerge", "SinkMerge"]
+  "baseTypeSeq": ["BoxMerge", "SinkMerge"],
+  "baseTypes": [
+    { "name": "BoxMergeAtBox", "prefix": "BoxMerge", "clazz": "BoxDog" },
+    { "name": "SinkMergeAtSink", "prefix": "SinkMerge", "clazz": "SinkDog" }
+  ]
 }

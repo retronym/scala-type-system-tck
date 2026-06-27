@@ -58,5 +58,9 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseTypes": {
+    "BoxMergeAtBox": "Box[Dog]",
+    "SinkMergeAtSink": "Sink[Animal]"
   }
 }

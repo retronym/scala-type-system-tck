@@ -138,6 +138,14 @@ object ScalacEngine extends TckEngine {
   def termType(ctx: Ctx, name: String): RenderedType.T =
     render(ctx, ctx.terms(name).asInstanceOf[ctx.global.Type])
 
+  def baseType(ctx: Ctx, prefix: String, clazz: String): RenderedType.T = {
+    val g = ctx.global
+    val pre = ctx.types(prefix).asInstanceOf[g.Type]
+    val clazzSym = ctx.types(clazz).asInstanceOf[g.Type].typeSymbol
+    val bt = pre.baseType(clazzSym)
+    if (bt == g.NoType) "<none>" else render(ctx, bt)
+  }
+
   /** Render a class symbol: corpus-relative (`Outer#Inner`) or fully-qualified. */
   private def symName(ctx: Ctx, sym0: Global#Symbol): String = {
     val g = ctx.global
