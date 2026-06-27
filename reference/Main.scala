@@ -32,6 +32,9 @@ object Main {
           println(s"  baseTypeSeq($t):")
           seq.foreach(s => println(s"    - $s"))
         }
+        g.baseClasses.foreach { case (t, seq) =>
+          println(s"  baseClasses($t): ${seq.mkString(", ")}")
+        }
     }
 
   /** Returns true if everything passes. */
@@ -56,6 +59,15 @@ object Main {
             if (got != expected) {
               entryOk = false
               println(s"[${e.id}] BASETYPESEQ($t) drift:")
+              println(s"    golden: $expected")
+              println(s"    actual: $got")
+            }
+          }
+          g.baseClasses.foreach { case (t, expected) =>
+            val got = actual.baseClasses.getOrElse(t, Nil)
+            if (got != expected) {
+              entryOk = false
+              println(s"[${e.id}] BASECLASSES($t) drift:")
               println(s"    golden: $expected")
               println(s"    actual: $got")
             }

@@ -39,5 +39,19 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "AnimalBoxThis": [
+      "<refinement>",
+      "Animal",
+      "AnimalBox",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "BoxThis": [
+      "Box",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

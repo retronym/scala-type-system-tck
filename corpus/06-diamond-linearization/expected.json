@@ -60,5 +60,35 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "D": [
+      "D",
+      "C",
+      "B",
+      "A",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "D2": [
+      "D2",
+      "B",
+      "C",
+      "A",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "B": [
+      "B",
+      "A",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "C": [
+      "C",
+      "A",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

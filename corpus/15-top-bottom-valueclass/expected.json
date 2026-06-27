@@ -68,5 +68,23 @@
       "scala.AnyVal",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "Int": [
+      "scala.Int",
+      "scala.AnyVal",
+      "scala.Any"
+    ],
+    "Dog": [
+      "Dog",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Meters": [
+      "Meters",
+      "scala.AnyVal",
+      "scala.Any"
+    ]
   }
 }

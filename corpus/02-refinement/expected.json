@@ -33,5 +33,18 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "ContainerOfDog": [
+      "<refinement>",
+      "Container",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Container": [
+      "Container",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

@@ -41,7 +41,11 @@ object ConformanceResult { implicit val rw: ReadWriter[ConformanceResult] = macr
 
 case class Golden(
     conformance: List[ConformanceResult],
-    baseTypeSeq: Map[String, List[RenderedType.T]]
+    baseTypeSeq: Map[String, List[RenderedType.T]],
+    // Linearization `baseClasses` (mixin-order sensitive) — the ordered list of
+    // base-class names. Distinct from baseTypeSeq order (SPEC §2). Defaulted so
+    // older goldens without it still parse.
+    baseClasses: Map[String, List[String]] = Map.empty
 )
 object Golden { implicit val rw: ReadWriter[Golden] = macroRW }
 
@@ -66,13 +70,17 @@ trait TckEngine {
   /** The base type sequence of the named type, as canonical RenderedTypes (SPEC §3). */
   def baseTypeSeq(ctx: Ctx, typeName: String): List[RenderedType.T]
 
-  /** Compute the full actual result (conformance + baseTypeSeq) for one entry. */
+  /** The linearization `baseClasses` of the named type, as ordered class names (SPEC §2). */
+  def baseClasses(ctx: Ctx, typeName: String): List[String]
+
+  /** Compute the full actual result (conformance + baseTypeSeq + baseClasses) for one entry. */
   final def run(loaded: LoadedEntry): Golden = {
     val ctx = load(loaded)
     val conf = loaded.entry.conformance.map(q =>
       ConformanceResult(q.lhs, q.rhs, conforms(ctx, q.lhs, q.rhs)))
     val bts = loaded.entry.baseTypeSeq.map(t => t -> baseTypeSeq(ctx, t)).toMap
-    Golden(conf, bts)
+    val bcs = loaded.entry.baseTypeSeq.map(t => t -> baseClasses(ctx, t)).toMap
+    Golden(conf, bts, bcs)
   }
 }
 

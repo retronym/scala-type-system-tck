@@ -38,5 +38,18 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "Named": [
+      "Named",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "AnimalNamed": [
+      "<refinement>",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

@@ -48,11 +48,13 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
       (symbol-id order); same-symbol merge stored as intersection vs glb in
       `baseType`. Verified against scalac.
 
-### Key follow-up surfaced by 06/07
-- [ ] **Add a `baseClasses` query dimension** to the reference engine + goldens.
-      This is the actual mixin-order/linearization signal (06 shows `baseTypeSeq`
-      order is mixin-INsensitive). The residual SCL ordering issue should be
-      checked here. Needs an ordered-linearization API on the IntelliJ side too.
+### baseClasses (linearization) dimension
+- [x] **Reference engine + goldens**: `baseClasses` ordered list per query type
+      (mixin-order sensitive). 06 now records `D=D,C,B,A` vs `D2=D2,B,C,A`.
+      Verify/test assert it. This is the real residual-ordering surface.
+- [ ] **IntelliJ engine**: compare against `MixinNodes.linearization(clazz|compound)`
+      (returns an ordered `Seq[ScType]`) — ordered comparison, normalizing the
+      self/Any convention.
 
 ### Done (IntelliJ side — in the intellij-scala repo, branch `scala-typesystem-tck`)
 - [x] PSI engine scaffold: `lang/typeSystemTck/{TckCorpus,TypeSystemTckTest}.scala`.

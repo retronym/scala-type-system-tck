@@ -47,5 +47,22 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "BoxDog": [
+      "Box",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "InvDog": [
+      "Inv",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "SinkDog": [
+      "Sink",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

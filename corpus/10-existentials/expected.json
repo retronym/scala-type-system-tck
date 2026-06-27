@@ -42,5 +42,17 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "BoxWild": [
+      "Box",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "BoxAnimalWild": [
+      "Box",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

@@ -47,5 +47,27 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "Dog": [
+      "Dog",
+      "Mammal",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Cat": [
+      "Cat",
+      "Mammal",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Mammal": [
+      "Mammal",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

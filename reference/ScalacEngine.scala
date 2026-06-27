@@ -113,6 +113,34 @@ object ScalacEngine extends TckEngine {
     tp.baseTypeSeq.toList.map(render(ctx, _))
   }
 
+  def baseClasses(ctx: Ctx, typeName: String): List[String] = {
+    val g = ctx.global
+    val tp = ctx.types(typeName).asInstanceOf[g.Type]
+    tp.baseClasses.map(symName(ctx, _))
+  }
+
+  /** Render a class symbol: corpus-relative (`Outer#Inner`) or fully-qualified. */
+  private def symName(ctx: Ctx, sym0: Global#Symbol): String = {
+    val g = ctx.global
+    import g._
+    val corpusModuleClass = ctx.corpusModuleClass.asInstanceOf[g.Symbol]
+    val sym = sym0.asInstanceOf[g.Symbol]
+    def isCorpusOwned(s0: Symbol): Boolean = {
+      var s = s0
+      while (s != NoSymbol) { if (s == corpusModuleClass) return true; s = s.owner }
+      false
+    }
+    if (isCorpusOwned(sym)) {
+      val parts = ListBuffer[String]()
+      var s = sym
+      while (s != NoSymbol && s != corpusModuleClass) {
+        if (s.isType && !s.isPackageClass) parts.prepend(s.name.toString.trim)
+        s = s.owner
+      }
+      parts.mkString("#")
+    } else sym.fullName
+  }
+
   // --- canonical rendering (SPEC §4) ---
 
   def render(ctx: Ctx, tp0: Global#Type): String = {

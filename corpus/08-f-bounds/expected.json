@@ -33,5 +33,18 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "Num": [
+      "Num",
+      "Ord",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "OrdNum": [
+      "Ord",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

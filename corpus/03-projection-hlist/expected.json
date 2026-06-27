@@ -39,5 +39,19 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "L": [
+      "HCons",
+      "HList",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Dog": [
+      "Dog",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

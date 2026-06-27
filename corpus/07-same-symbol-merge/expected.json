@@ -44,5 +44,19 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "BoxMerge": [
+      "<refinement>",
+      "Box",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "SinkMerge": [
+      "<refinement>",
+      "Sink",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

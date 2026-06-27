@@ -30,6 +30,11 @@ class ScalacTckTest extends munit.FunSuite {
           assertEquals(actual.baseTypeSeq.getOrElse(t, Nil), expected)
         }
       }
+      g.baseClasses.foreach { case (t, expected) =>
+        test(s"${e.id}: baseClasses($t) matches golden") {
+          assertEquals(actual.baseClasses.getOrElse(t, Nil), expected)
+        }
+      }
     }
   }
 }

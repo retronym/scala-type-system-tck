@@ -49,5 +49,24 @@
       "scala.AnyVal",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "DogSingleton": [
+      "Dog",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "BoxedT": [
+      "Dog",
+      "Animal",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Lit": [
+      "scala.Int",
+      "scala.AnyVal",
+      "scala.Any"
+    ]
   }
 }

@@ -39,5 +39,19 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "DogProducer": [
+      "DogProducer",
+      "Producer",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "MyCollDog": [
+      "MyColl",
+      "Producer",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

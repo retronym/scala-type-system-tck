@@ -27,5 +27,12 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "O1Inner": [
+      "Outer#Inner",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

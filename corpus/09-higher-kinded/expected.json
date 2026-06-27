@@ -33,5 +33,23 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "MonadM": [
+      "Monad",
+      "Functor",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "FunctorM": [
+      "Functor",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "BoundedHolder": [
+      "Bounded",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }

@@ -63,5 +63,33 @@
       "java.lang.Object",
       "scala.Any"
     ]
+  },
+  "baseClasses": {
+    "ProjDirect": [
+      "B",
+      "Base",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "ProjViaAlias": [
+      "B",
+      "Base",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "Combined": [
+      "<refinement>",
+      "<refinement>",
+      "B",
+      "Base",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "B": [
+      "B",
+      "Base",
+      "java.lang.Object",
+      "scala.Any"
+    ]
   }
 }
