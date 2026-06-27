@@ -36,13 +36,14 @@ object Main {
 
   /** Returns true if everything passes. */
   private def verify(): Boolean = {
-    var ok = true
+    var allOk = true
     Corpus.load().foreach { e =>
+      var entryOk = true
       val actual = ScalacEngine.run(e)
       // 1. conformance vs human ground truth
       e.entry.conformance.zip(actual.conformance).foreach { case (q, r) =>
         if (r.holds != q.expect) {
-          ok = false
+          entryOk = false
           println(s"[${e.id}] CONFORMANCE: ${q.lhs} <:< ${q.rhs} expected ${q.expect}, scalac says ${r.holds}")
         }
       }
@@ -53,15 +54,16 @@ object Main {
           g.baseTypeSeq.foreach { case (t, expected) =>
             val got = actual.baseTypeSeq.getOrElse(t, Nil)
             if (got != expected) {
-              ok = false
+              entryOk = false
               println(s"[${e.id}] BASETYPESEQ($t) drift:")
               println(s"    golden: $expected")
               println(s"    actual: $got")
             }
           }
       }
-      println(s"[${e.id}] ${if (ok) "ok" else "FAIL"} — ${e.entry.description}")
+      allOk &&= entryOk
+      println(s"[${e.id}] ${if (entryOk) "ok" else "FAIL"} — ${e.entry.description}")
     }
-    ok
+    allOk
   }
 }

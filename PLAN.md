@@ -40,6 +40,19 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Corpus 04: context-dependent types via self-type (SCL-21947 shape).
 - [x] Corpus 05: refinement substitution through a projection (SCL-21585 proper —
       `(M { type A = B })#A`, via type-alias projection, and combined with `with`).
+- [x] Corpus 06–15 (gap-analysis fill, all 2.13-reachable): diamond linearization,
+      same-symbol glb/lub merge, F-bounds, higher-kinded, existentials, structural
+      refinements, singleton/literal/path, variance-through-inheritance,
+      inner-class prefix, top/bottom + value classes. All green vs scalac oracle.
+- [x] SPEC correction: `baseClasses` (linearization, mixin-ordered) ≠ `baseTypeSeq`
+      (symbol-id order); same-symbol merge stored as intersection vs glb in
+      `baseType`. Verified against scalac.
+
+### Key follow-up surfaced by 06/07
+- [ ] **Add a `baseClasses` query dimension** to the reference engine + goldens.
+      This is the actual mixin-order/linearization signal (06 shows `baseTypeSeq`
+      order is mixin-INsensitive). The residual SCL ordering issue should be
+      checked here. Needs an ordered-linearization API on the IntelliJ side too.
 
 ### Done (IntelliJ side — in the intellij-scala repo, branch `scala-typesystem-tck`)
 - [x] PSI engine scaffold: `lang/typeSystemTck/{TckCorpus,TypeSystemTckTest}.scala`.

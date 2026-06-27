@@ -67,15 +67,42 @@ Properties the sequence must satisfy (the TCK asserts these as invariants):
 
 `baseClasses` is exactly `L(C)` as a list of class symbols.
 
+> **Important (verified against scalac 2.13):** `baseClasses` order is **not** the
+> same as `baseTypeSeq` order. `baseClasses` is the mixin-order-sensitive
+> linearization `L(C)`; `baseTypeSeq` is sorted by a *symbol-id total order
+> consistent with subtyping*. Two types with identical base classes in different
+> linearization order share the same `baseTypeSeq` order. Concretely, for
+> `D extends B with C` and `D2 extends C with B`:
+>
+> | | `baseClasses` (linearization) | `baseTypeSeq` (symbol-id order) |
+> |---|---|---|
+> | `D`  | `D, C, B, A, Object, Any`  | `D, B, C, A, Object, Any` |
+> | `D2` | `D2, B, C, A, Object, Any` | `D2, B, C, A, Object, Any` |
+>
+> So the **mixin-order / linearization signal lives in `baseClasses`**, and the
+> residual "ordering differs from scalac" concern should be checked there, not in
+> `baseTypeSeq` (whose order is a deterministic symbol-id sort). The corpus's
+> diamond entry (06) records this; a `baseClasses` query is future work.
+
 ---
 
 ## 3. The base type sequence (the construction — the missing part)
 
 `baseTypeSeq(T)` is a `BaseTypeSeq`: an ordered array of *types* `bt₀, bt₁, …`
-such that `bt₀ = T` (or its widening) and the **symbols** of the sequence are
-`baseClasses` in the same order. Each `btᵢ` is `T.baseType(baseClasses(i))`: the
-base type *as seen from* `T`, i.e. with prefixes instantiated and type arguments
-substituted along the path from `T` to that base class.
+such that `bt₀ = T` (or its widening). Its elements cover the same *set* of base
+classes as `baseClasses`, but ordered by the symbol-id total order above (not the
+linearization). Each `btᵢ` is, conceptually, `T.baseType(symᵢ)`: the base type
+*as seen from* `T`, with prefixes instantiated and type arguments substituted
+along the path from `T` to that base class.
+
+> **Subtlety (verified):** for a same-symbol merge, the `baseTypeSeq` *element* and
+> `T.baseType(sym)` can differ in representation. For `Box[Animal] with Box[Dog]`
+> (`class Box[+A]`), the `baseTypeSeq` element for `Box` is the **intersection**
+> `Box[Dog] with Box[Animal]` (a `RefinedType` with `typeSymbol = Box`), whereas
+> `T.baseType(Box)` returns the glb-reduced `Box[Dog]`. The glb/lub merge of §3.1
+> is what `baseType` performs; `baseTypeSeq` may carry the unreduced intersection
+> until `baseType` is forced. Whether IntelliJ represents the merged base as an
+> intersection or a glb is a likely divergence point.
 
 ### 3.1 Construction for a compound/refined type
 

@@ -1,0 +1,37 @@
+{
+  "conformance": [
+    {
+      "lhs": "MonadM",
+      "rhs": "FunctorM",
+      "holds": true
+    },
+    {
+      "lhs": "FunctorM",
+      "rhs": "MonadM",
+      "holds": false
+    },
+    {
+      "lhs": "MonadM",
+      "rhs": "MonadM",
+      "holds": true
+    }
+  ],
+  "baseTypeSeq": {
+    "MonadM": [
+      "Monad[M]",
+      "Functor[M]",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "FunctorM": [
+      "Functor[M]",
+      "java.lang.Object",
+      "scala.Any"
+    ],
+    "BoundedHolder": [
+      "Bounded[Holder]",
+      "java.lang.Object",
+      "scala.Any"
+    ]
+  }
+}
