@@ -64,6 +64,19 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
       (set membership vs golden). Renderer normalizes `canonicalText` to SPEC §4.
       Note: `BaseTypes.get` is **unordered** (`HashMap.values`) — order can't be
       checked yet; membership only.
+- [x] Corpus 16–21: member-type / asSeenFrom + singleton val-path-through-refinement
+      shapes (SCL-21947), with the `termTypes` probe dimension reading inferred
+      member-access types vs the scalac oracle.
+- [x] Corpus 22: `MutableSettings` shape — refinement on the BOUND of an abstract
+      type member, refined member (`type T`) inherited transitively. `(x:
+      BooleanSetting).value` left the prefix as the raw `SettingValue.this` →
+      abstract `SettingValue.this.T` instead of `BooleanSetting#T`. **Fixed** in
+      IntelliJ `ThisTypeSubstitution.hasSameOrInheritor`: it now widens an abstract
+      type-alias compound component to its upper bound (it already did so for type
+      *parameters*), so `SettingValue` is found under `Setting`'s bound and the
+      this-type re-anchors. Guarded by `OverrideHighlightingTest`. The `#T`-vs-
+      `Boolean` render difference is pinned in the PSI test's `Deferred.termType`
+      (representation seam; conformance/`=:=` is correct).
 
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
