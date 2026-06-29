@@ -123,6 +123,13 @@ object ScalacEngine extends TckEngine {
     a <:< b
   }
 
+  def equiv(ctx: Ctx, lhs: String, rhs: String): Boolean = {
+    val g = ctx.global
+    val a = ctx.types(lhs).asInstanceOf[g.Type]
+    val b = ctx.types(rhs).asInstanceOf[g.Type]
+    a =:= b
+  }
+
   def baseTypeSeq(ctx: Ctx, typeName: String): List[RenderedType.T] = {
     val g = ctx.global
     val tp = ctx.types(typeName).asInstanceOf[g.Type]

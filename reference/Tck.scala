@@ -13,6 +13,12 @@ object RenderedType {
 case class ConformanceQuery(lhs: String, rhs: String, expect: Boolean)
 object ConformanceQuery { implicit val rw: ReadWriter[ConformanceQuery] = macroRW }
 
+/** A single type-equivalence (`=:=`) query with human-authored ground truth.
+ *  Strictly more discriminating than conformance: a `<:<` row may pass while the
+ *  corresponding `=:=` is wrong (singleton/path-dependent equivalence, SCL-21947). */
+case class EquivalenceQuery(lhs: String, rhs: String, expect: Boolean)
+object EquivalenceQuery { implicit val rw: ReadWriter[EquivalenceQuery] = macroRW }
+
 /**
  * A `baseType` query: the base type of `prefix` at the class of `clazz`
  * (scalac's `prefix baseType clazz.typeSymbol`). Both `prefix` and `clazz` name
@@ -37,6 +43,8 @@ case class CorpusEntry(
     concepts: List[String],
     types: List[TypeDecl],
     conformance: List[ConformanceQuery],
+    // Type-equivalence (`=:=`) queries. Defaulted to Nil so older entries parse.
+    equivalence: List[EquivalenceQuery] = Nil,
     baseTypeSeq: List[String],
     // Term probes: `val __t_<name> = <expr>` spliced (optionally at an anchor),
     // whose *inferred type* is read — exercises member resolution / asSeenFrom /
@@ -54,8 +62,13 @@ case class LoadedEntry(id: String, dir: Path, entry: CorpusEntry, source: String
 case class ConformanceResult(lhs: String, rhs: String, holds: Boolean)
 object ConformanceResult { implicit val rw: ReadWriter[ConformanceResult] = macroRW }
 
+case class EquivalenceResult(lhs: String, rhs: String, holds: Boolean)
+object EquivalenceResult { implicit val rw: ReadWriter[EquivalenceResult] = macroRW }
+
 case class Golden(
     conformance: List[ConformanceResult],
+    // Type-equivalence (`=:=`) results. Defaulted so older goldens still parse.
+    equivalence: List[EquivalenceResult] = Nil,
     baseTypeSeq: Map[String, List[RenderedType.T]],
     // Linearization `baseClasses` (mixin-order sensitive) — the ordered list of
     // base-class names. Distinct from baseTypeSeq order (SPEC §2). Defaulted so
@@ -86,6 +99,9 @@ trait TckEngine {
   /** Is the type named `lhs` a subtype of the type named `rhs`? (SPEC §5) */
   def conforms(ctx: Ctx, lhs: String, rhs: String): Boolean
 
+  /** Is the type named `lhs` equivalent (`=:=`) to the type named `rhs`? */
+  def equiv(ctx: Ctx, lhs: String, rhs: String): Boolean
+
   /** The base type sequence of the named type, as canonical RenderedTypes (SPEC §3). */
   def baseTypeSeq(ctx: Ctx, typeName: String): List[RenderedType.T]
 
@@ -103,11 +119,13 @@ trait TckEngine {
     val ctx = load(loaded)
     val conf = loaded.entry.conformance.map(q =>
       ConformanceResult(q.lhs, q.rhs, conforms(ctx, q.lhs, q.rhs)))
+    val eqv = loaded.entry.equivalence.map(q =>
+      EquivalenceResult(q.lhs, q.rhs, equiv(ctx, q.lhs, q.rhs)))
     val bts = loaded.entry.baseTypeSeq.map(t => t -> baseTypeSeq(ctx, t)).toMap
     val bcs = loaded.entry.baseTypeSeq.map(t => t -> baseClasses(ctx, t)).toMap
     val tts = loaded.entry.termTypes.map(d => d.name -> termType(ctx, d.name)).toMap
     val bfs = loaded.entry.baseTypes.map(q => q.name -> baseType(ctx, q.prefix, q.clazz)).toMap
-    Golden(conf, bts, bcs, tts, bfs)
+    Golden(conf, eqv, bts, bcs, tts, bfs)
   }
 }
 

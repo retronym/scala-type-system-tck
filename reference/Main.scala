@@ -28,6 +28,7 @@ object Main {
         val g = ScalacEngine.run(e)
         println(s"# ${e.id}: ${e.entry.description}")
         g.conformance.foreach(c => println(f"  ${c.lhs} <:< ${c.rhs} = ${c.holds}"))
+        g.equivalence.foreach(c => println(f"  ${c.lhs} =:= ${c.rhs} = ${c.holds}"))
         g.baseTypeSeq.foreach { case (t, seq) =>
           println(s"  baseTypeSeq($t):")
           seq.foreach(s => println(s"    - $s"))
@@ -54,6 +55,13 @@ object Main {
         if (r.holds != q.expect) {
           entryOk = false
           println(s"[${e.id}] CONFORMANCE: ${q.lhs} <:< ${q.rhs} expected ${q.expect}, scalac says ${r.holds}")
+        }
+      }
+      // 1b. equivalence vs human ground truth
+      e.entry.equivalence.zip(actual.equivalence).foreach { case (q, r) =>
+        if (r.holds != q.expect) {
+          entryOk = false
+          println(s"[${e.id}] EQUIVALENCE: ${q.lhs} =:= ${q.rhs} expected ${q.expect}, scalac says ${r.holds}")
         }
       }
       // 2. baseTypeSeq vs committed golden (regression)
