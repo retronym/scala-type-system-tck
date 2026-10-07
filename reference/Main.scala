@@ -50,6 +50,11 @@ object Main {
     Corpus.load().foreach { e =>
       var entryOk = true
       val actual = ScalacEngine.run(e)
+      // 0. the entry must be a legal program (typer alone accepts some illegal ones)
+      ScalacEngine.legalityErrors(e).foreach { err =>
+        entryOk = false
+        println(s"[${e.id}] ILLEGAL (rejected by scalac through refchecks): $err")
+      }
       // 1. conformance vs human ground truth
       e.entry.conformance.zip(actual.conformance).foreach { case (q, r) =>
         if (r.holds != q.expect) {
@@ -66,7 +71,9 @@ object Main {
       }
       // 2. baseTypeSeq vs committed golden (regression)
       Corpus.readGolden(e) match {
-        case None => println(s"[${e.id}] no golden (run `generate`)")
+        case None =>
+          entryOk = false
+          println(s"[${e.id}] no golden (run `generate`)")
         case Some(g) =>
           g.baseTypeSeq.foreach { case (t, expected) =>
             val got = actual.baseTypeSeq.getOrElse(t, Nil)

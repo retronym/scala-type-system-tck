@@ -63,6 +63,25 @@ object ScalacEngine extends TckEngine {
        |""".stripMargin
   }
 
+  /**
+   * Errors from compiling the entry (preamble plus spliced queries and probes)
+   * through `refchecks`. `load` stops after typer, which accepts some illegal
+   * programs: e.g. "inherits different type instances" (SLS §3.4's reduced union)
+   * is only reported by RefChecks. A corpus entry must be a legal program, so the
+   * goldens never record typer's provisional answer for code scalac rejects.
+   */
+  def legalityErrors(loaded: LoadedEntry): List[String] = {
+    val settings = new Settings
+    settings.usejavacp.value = true
+    settings.stopAfter.value = List("refchecks")
+    settings.outputDirs.setSingleOutput(new VirtualDirectory("(memory)", None))
+    val reporter = new StoreReporter(settings)
+    val global = new Global(settings, reporter)
+    val run = new global.Run
+    run.compileSources(List(new BatchSourceFile(s"$wrapperObj.scala", wrap(loaded))))
+    reporter.infos.toList.filter(_.severity == reporter.ERROR).map(i => s"${i.pos.line}: ${i.msg}")
+  }
+
   def load(loaded: LoadedEntry): Ctx = {
     val settings = new Settings
     settings.usejavacp.value = true

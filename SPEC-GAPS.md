@@ -297,4 +297,4 @@ These entries were added to `corpus/` along with this document. The goldens are 
 
 Corpus 27's comment now describes the 2.13 mechanism (section 2(a)) instead of 2.10's `toPrefix`.
 
-Not yet covered: a guard in the reference engine against illegal preambles. The engine stops after typer, which is how corpus 18 went unnoticed. Running it through `refchecks` would catch that.
+The reference engine now also compiles each entry through `refchecks` (`verify` and the munit tests fail on errors). An illegal preamble like the old corpus 18 can no longer go unnoticed.

@@ -18,6 +18,10 @@ class ScalacTckTest extends munit.FunSuite {
   entries.foreach { e =>
     val actual = ScalacEngine.run(e)
 
+    test(s"${e.id}: is a legal program (compiles through refchecks)") {
+      assertEquals(ScalacEngine.legalityErrors(e), Nil)
+    }
+
     e.entry.conformance.zip(actual.conformance).foreach { case (q, r) =>
       test(s"${e.id}: ${q.lhs} <:< ${q.rhs} == ${q.expect}") {
         assertEquals(r.holds, q.expect)
