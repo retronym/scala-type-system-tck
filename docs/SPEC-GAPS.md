@@ -109,7 +109,12 @@ The literal answer `Array[X]` would accept the second line, which is unsound. Re
 
 §3.4 item 1 defines the *set* of base types, case by case. The base types of a compound type are the "reduced union": if the multiset contains several instances of the same class, "all those instances are replaced by one of them which conforms to all others. It is an error if no such instance exists." The base types of `p.type` are those of the type of `p`, and the self type enters through §5.1/§6.5.
 
+Linearization (§5.1.2) is specified exactly: `L(C) = C, L(C_n) +⃗ … +⃗ L(C_1)`, where `+⃗` concatenates and keeps the right operand's copy of any class that appears in both. scalac's `baseClasses` is this list. Corpus 06 checks it: for `D extends B with C` it is `D, C, B, A, Object, Any`.
+
 ### scalac
+
+**Construction.** scalac represents the base types of a type as a `BaseTypeSeq`, an array with one entry per base class. For a class type `pre.C[args]`, the array is `C`'s own sequence with each element seen from `pre` and with `C`'s type parameters replaced by `args` ([`TypeRef.baseTypeSeqImpl`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/Types.scala#L2604)). No merge is needed there. For a compound type, the parents' sequences are merged, as described below. `T baseType D` looks up `D`'s entry ([`baseTypeIndex`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/BaseTypeSeqs.scala#L119)). Conformance to a class type goes through it: `A <: p.D[…]` holds if `A baseType D` conforms ([`TypeComparers.scala:486`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/tpe/TypeComparers.scala#L486)). That is how a base-type bug shows up as a conformance bug.
+
 
 scalac distinguishes two contexts, and only one of them follows the SLS rule.
 
@@ -141,11 +146,20 @@ This follows the SLS's conformance rule for compound types ("conforms to each of
 
 So for compound types the SLS says "error" and scalac merges. The merge rules (glb of prefixes, variance per argument, existential for an invariant mismatch) are not in the SLS. The Scala 3 spec's `baseType` does specify a merge (`meet`/`join`: `&` for covariant, `|` for contravariant, `=:=` required for invariant arguments and for prefixes). That is prior art for a clarification, although it is not what scalac 2 does for prefixes or invariant arguments.
 
-**Order.** The SLS has a set. scalac has a sequence sorted by [`Symbol.isLess`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/Symbols.scala#L1989) (base-class count, then symbol id), not by linearization (SPEC.md §2). The order shows up in the component order of merged intersections (`Cat with Dog` above). That order is invisible to conformance, because scalac checks invariant arguments by mutual `<:<` ([`isSubArgs`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/Types.scala#L4761)). It is visible to `=:=`, because [`isSameType2`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/tpe/TypeComparers.scala#L253) compares refined-type parents pairwise. Verified: `Cat with Dog =:= Dog with Cat` is false, and `Inv[Cat with Dog] <:< Inv[Dog with Cat]` is true. The SLS is order-sensitive in both places: two compound types are equivalent only if their components "occur in the same order" (§3.5.1), and an invariant argument must be equivalent (§3.5.2). So by the letter of the SLS, `val w: Inv[Dog with Cat] = (??? : Inv[Cat with Dog])` is ill-typed, and scalac accepts it.
+**Order.** The SLS has a set. scalac has a sequence sorted by [`Symbol.isLess`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/Symbols.scala#L1989) (base-class count, then symbol id), not by linearization. Two classes with the same base classes in different mixin order have the same sequence order but different linearizations (corpus 06):
+
+| | `baseClasses` (linearization) | `baseTypeSeq` order |
+|---|---|---|
+| `D extends B with C` | `D, C, B, A, Object, Any` | `D, B, C, A, Object, Any` |
+| `D2 extends C with B` | `D2, B, C, A, Object, Any` | `D2, B, C, A, Object, Any` |
+
+So mixin-order bugs show up in `baseClasses`, not in `baseTypeSeq`. The sequence order shows up in the component order of merged intersections (`Cat with Dog` above). That order is invisible to conformance, because scalac checks invariant arguments by mutual `<:<` ([`isSubArgs`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/Types.scala#L4761)). It is visible to `=:=`, because [`isSameType2`](https://github.com/scala/scala/blob/v2.13.18/src/reflect/scala/reflect/internal/tpe/TypeComparers.scala#L253) compares refined-type parents pairwise. Verified: `Cat with Dog =:= Dog with Cat` is false, and `Inv[Cat with Dog] <:< Inv[Dog with Cat]` is true. The SLS is order-sensitive in both places: two compound types are equivalent only if their components "occur in the same order" (§3.5.1), and an invariant argument must be equivalent (§3.5.2). So by the letter of the SLS, `val w: Inv[Dog with Cat] = (??? : Inv[Cat with Dog])` is ill-typed, and scalac accepts it.
 
 **Self types.** The base types of `X.this` include those of the self type, because `ThisType.underlying` is `typeOfThis`. The SLS defines the self type as "the greatest lower bound of ´T´ and ´C´", and a glb is not unique (§3.5.2 says so). scalac picks `C with T`, or `T` alone when `T` already conforms to `C` ([`SelfTypeCompleter`](https://github.com/scala/scala/blob/v2.13.18/src/compiler/scala/tools/nsc/typechecker/Namers.scala#L1015)). Verified: `trait Impl { self: Api => def me = this }` gives `me: Impl with Api`, and inside `trait Definitions { self: SymbolTable => }` (where `SymbolTable extends Definitions`) `this` has type `SymbolTable`. Corpus 04 has `AnimalBox with Animal` at the head of the sequence.
 
-**Depth.** `BaseTypeSeq` depth bounds and the approximation they imply are implementation only (SPEC.md §3.3).
+**Representation.** A merged entry is stored unreduced, as the intersection of the variants (`Box[Cat] with Box[Dog]` in corpus 18's `baseTypeSeq` golden). `mergePrefixAndArgs` reduces it lazily, when it is read through `BaseTypeSeq.apply` or `baseType` (`Box[Cat with Dog]` in 18's `baseTypes` golden). An engine that stores the reduced form renders the sequence differently, though `baseType` agrees.
+
+**Depth.** Each `BaseTypeSeq` records its maximum type depth (`maxDepth`), and lub and glb derive their recursion limit from it (section 4). When a merge exhausts its depth it gives up (`NoType`) instead of computing an exact answer, so in pathological cases base types are approximations. Two implementations can then legitimately differ in the approximated part while agreeing on everything a program can observe. None of this is in the SLS. The TCK does not record depth yet (PLAN).
 
 ### Note for the TCK: corpus 18 was not a legal program
 
@@ -280,20 +294,20 @@ Ranked by usefulness: soundness first, then rules that implementers have been ob
 
 ## TCK entries for these findings
 
-These entries were added to `corpus/` along with this document. The goldens are scalac's answers, rendered in the SPEC.md §4 normal form. Existentials render with alpha-normalized quantifiers (`_1`, `_2`, …).
+These entries were added to `corpus/` along with this document. The goldens are scalac's answers, rendered in the [TCK.md](TCK.md) §4 normal form. Existentials render with alpha-normalized quantifiers (`_1`, `_2`, …).
 
 | Entry | Probes (scalac answer) | Pins down |
 |---|---|---|
-| [`18-multipath-base-type`](corpus/18-multipath-base-type) (reworked) | `(L with R) baseType Box` = `Box[Cat with Dog]`, yet `L with R <: Box[Dog with Cat]` is false; `LS with RS` at `Sink` = `Sink[Animal]`; legal templates `LRB extends L with R with Box[Dog with Cat]` | The variance merge, on a legal program; `<:` doesn't use the merge (§3) |
-| [`29-asf-outer-type-param`](corpus/29-asf-outer-type-param) | `c.f` → `java.lang.String` | Owner chain before base types; the SLS reading gives `Int` (§2(b)) |
-| [`30-asf-unstable-prefix`](corpus/30-asf-unstable-prefix) | `mk().arr` → `scala.Array[_1] forSome { type _1 >: scala.Nothing <: X with scala.Singleton }`; `mk().self` → `X` | `captureThis` for unstable prefixes (§2(c)) |
-| [`31-singleton-rebind-val`](corpus/31-singleton-rebind-val) | `b.get` → `Use.this.b.x.type`; `b.x.type <: String`; `b.get.length` → `scala.Int` | `rebind` for a plain `val` override (§1); complements 21 |
-| [`32-compound-invariant-merge`](corpus/32-compound-invariant-merge) | `(I[Dog] with I[Cat]) baseType I` = `I[_1] forSome { type _1 >: Cat with Dog <: Animal }`; `x.get` → `Animal`; `pick(x)` → `Dog` | Existential merge for invariant arguments (§3) |
-| [`33-block-local-existentials`](corpus/33-block-local-existentials) | `Ref[_1] forSome { type _1 >: scala.Nothing <: Tree with scala.Singleton }`, `Ref[_1] forSome { type _1 >: scala.Nothing <: Base }`, `Base`, `java.lang.Object { def me: this.type }` | Type avoidance beyond singletons (§6) |
-| [`34-cake-lub-prefix`](corpus/34-cake-lub-prefix) | cake siblings → `Use.this.global.Symbol`; `a.Tree`/`b.Tree` → `G#Tree` | lub keeps the path; prefix lub (§4) |
-| [`35-intersection-order`](corpus/35-intersection-order) | `Cat with Dog` ⇄ `Dog with Cat` and `Inv[…]` of them: `<:` both ways, not `=:=` | Order visible to `=:=`, invisible to `<:` (§3) |
-| [`36-lub-associativity`](corpus/36-lub-associativity) | n-ary `match` ≠ left-nested `if` (an extra nested `iterableFactory` refinement); right-nested `if` = `match` | n-ary vs pairwise lub (§4) |
-| [`37-self-type-spelling`](corpus/37-self-type-spelling) | `sym` → `Definitions.this.Symbol`; `foo` → `Definitions.this.Type`; `this` → `Impl with Api` / `SymbolTable` | Spelling after the using class; choice of glb (§7) |
+| [`18-multipath-base-type`](../corpus/18-multipath-base-type) (reworked) | `(L with R) baseType Box` = `Box[Cat with Dog]`, yet `L with R <: Box[Dog with Cat]` is false; `LS with RS` at `Sink` = `Sink[Animal]`; legal templates `LRB extends L with R with Box[Dog with Cat]` | The variance merge, on a legal program; `<:` doesn't use the merge (§3) |
+| [`29-asf-outer-type-param`](../corpus/29-asf-outer-type-param) | `c.f` → `java.lang.String` | Owner chain before base types; the SLS reading gives `Int` (§2(b)) |
+| [`30-asf-unstable-prefix`](../corpus/30-asf-unstable-prefix) | `mk().arr` → `scala.Array[_1] forSome { type _1 >: scala.Nothing <: X with scala.Singleton }`; `mk().self` → `X` | `captureThis` for unstable prefixes (§2(c)) |
+| [`31-singleton-rebind-val`](../corpus/31-singleton-rebind-val) | `b.get` → `Use.this.b.x.type`; `b.x.type <: String`; `b.get.length` → `scala.Int` | `rebind` for a plain `val` override (§1); complements 21 |
+| [`32-compound-invariant-merge`](../corpus/32-compound-invariant-merge) | `(I[Dog] with I[Cat]) baseType I` = `I[_1] forSome { type _1 >: Cat with Dog <: Animal }`; `x.get` → `Animal`; `pick(x)` → `Dog` | Existential merge for invariant arguments (§3) |
+| [`33-block-local-existentials`](../corpus/33-block-local-existentials) | `Ref[_1] forSome { type _1 >: scala.Nothing <: Tree with scala.Singleton }`, `Ref[_1] forSome { type _1 >: scala.Nothing <: Base }`, `Base`, `java.lang.Object { def me: this.type }` | Type avoidance beyond singletons (§6) |
+| [`34-cake-lub-prefix`](../corpus/34-cake-lub-prefix) | cake siblings → `Use.this.global.Symbol`; `a.Tree`/`b.Tree` → `G#Tree` | lub keeps the path; prefix lub (§4) |
+| [`35-intersection-order`](../corpus/35-intersection-order) | `Cat with Dog` ⇄ `Dog with Cat` and `Inv[…]` of them: `<:` both ways, not `=:=` | Order visible to `=:=`, invisible to `<:` (§3) |
+| [`36-lub-associativity`](../corpus/36-lub-associativity) | n-ary `match` ≠ left-nested `if` (an extra nested `iterableFactory` refinement); right-nested `if` = `match` | n-ary vs pairwise lub (§4) |
+| [`37-self-type-spelling`](../corpus/37-self-type-spelling) | `sym` → `Definitions.this.Symbol`; `foo` → `Definitions.this.Type`; `this` → `Impl with Api` / `SymbolTable` | Spelling after the using class; choice of glb (§7) |
 
 Corpus 27's comment now describes the 2.13 mechanism (section 2(a)) instead of 2.10's `toPrefix`.
 
