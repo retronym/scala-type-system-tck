@@ -42,6 +42,8 @@ scala-cli run  reference -- show 03-projection-hlist
 scala-cli test reference                 # munit: corpus vs ground truth + goldens
 ```
 
+`verify` also checks that every entry is a legal program: the preamble with its spliced queries must compile through `refchecks`, because the engine itself stops after typer, which accepts some programs scalac rejects (see [SPEC-GAPS.md](SPEC-GAPS.md) §3). CI (`.github/workflows/ci.yml`) runs `verify`, the munit tests, and a drift check that regenerates every golden and fails on any difference.
+
 ## How a corpus entry works
 
 `tck.json` lists named types as Scala type expressions and asserts conformance

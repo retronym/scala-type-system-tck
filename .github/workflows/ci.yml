@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: coursier/cache-action@v6
+      - uses: VirtusLab/scala-cli-setup@v1
+
+      # Human ground truth (conformance / equivalence), legality of every entry
+      # (compiles through refchecks), and drift of every committed golden.
+      - name: Verify corpus
+        run: scala-cli run reference --server=false -- verify
+
+      - name: Unit tests
+        run: scala-cli test reference --server=false
+
+      # `verify` only compares the goldens that exist. Regenerating and diffing also
+      # catches missing goldens, new queries without goldens, and stale entries.
+      - name: Goldens are up to date
+        run: |
+          scala-cli run reference --server=false -- generate
+          if [ -n "$(git status --porcelain -- corpus)" ]; then
+            git status --porcelain -- corpus
+            git diff -- corpus
+            echo "::error::Goldens are stale: run 'scala-cli run reference -- generate' and commit corpus/*/expected.json"
+            exit 1
+          fi

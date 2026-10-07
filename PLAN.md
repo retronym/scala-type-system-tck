@@ -103,7 +103,8 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [ ] Scala 3 reference engine (SPEC §7).
 - [ ] Consume the corpus as a build dependency (unpack in the build) rather than
       referencing the sibling checkout.
-- [ ] CI: regenerate goldens, assert no drift.
+- [x] CI: verify (ground truth + legality through refchecks + golden drift), munit,
+      and regenerate-and-diff of all goldens (`.github/workflows/ci.yml`).
 
 ## Conventions
 - Corpus entries are numbered and **progressive**: each introduces one new concept
