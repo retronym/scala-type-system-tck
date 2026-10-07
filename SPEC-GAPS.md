@@ -53,7 +53,7 @@ trait B extends A { val x: String }
 def f(b: B) = b.get.length          // scalac: f: Int
 ```
 
-`get`'s type `A.this.x.type`, seen from `b.type`, is `b.x.type`. The `x` in it is rebound to `B#x`, whose type is `String`, so `.length` resolves. Without rebinding, the underlying is `AnyRef` and the call fails. The override-object variant (`override object gen extends { val global: Global.this.type } ...`) is corpus 21. The plain-`val` variant is a proposed new entry (see [new TCK entries](#candidate-new-tck-entries)).
+`get`'s type `A.this.x.type`, seen from `b.type`, is `b.x.type`. The `x` in it is rebound to `B#x`, whose type is `String`, so `.length` resolves. Without rebinding, the underlying is `AnyRef` and the call fails. The override-object variant (`override object gen extends { val global: Global.this.type } ...`) is corpus 21. The plain-`val` variant is corpus 31.
 
 **For implementers:** a declaration-keyed type representation must reproduce `rebind` wherever a prefix is substituted. IntelliJ does it in `ScProjectionType.actual`. The PR notes it as "restored in three hand-synced places", which is the risk.
 
@@ -278,47 +278,23 @@ Ranked by usefulness: soundness first, then rules that implementers have been ob
 7. **§3.4, this-type rule wording.** "´D´ is a subclass of ´C´" is the 2.10 formulation. It is harmless given (3), but if (3) is adopted, "´D´ is ´C´" would match 2.13 and make the termination argument more obvious.
 8. **§4.1, widening of inferred definition types.** Mention that singleton types (and `with Singleton`) are widened when the type of a non-final definition is inferred. Low priority.
 
-## Candidate new TCK entries
+## TCK entries for these findings
 
-Each entry follows the existing format (`source.scala`, `tck.json` with `types`, `conformance`, `equivalence`, `termTypes`, `baseTypes`). Expected values are the verified scalac answers above.
+These entries were added to `corpus/` along with this document. The goldens are scalac's answers, rendered in the SPEC.md §4 normal form. Existentials render with alpha-normalized quantifiers (`_1`, `_2`, …).
 
-| # | Name | Probes (scalac answer) | Pins down |
-|---|---|---|---|
-| fix 18 | `18-multipath-base-type` | Recast with compound types `L with R` (`baseType` = `Box[Cat with Dog]`, yet `<: Box[Dog with Cat]` is false), `LS with RS` (`Sink[Animal]`); class templates `LRB extends L with R with Box[Dog with Cat]` | The variance merge, on a legal program; merge not used by `<:` |
-| 29 | `asf-outer-type-param` | `termTypes`: `c.f` → `String` | §2(b): owner chain before base types |
-| 30 | `asf-unstable-prefix` | `termTypes`: `mk().arr` → `Array[_ <: X with Singleton]`; `mk().self` → `X` | §2(c): `captureThis`. Needs the existential rendering (SPEC §7) |
-| 31 | `singleton-rebind-val` | with `val b: B` at an anchor: `termTypes` `b.get` → `b.x.type`; conformance `b.x.type <: String` = true | §1: `rebind` for a plain `val` override (complements 21) |
-| 32 | `compound-invariant-merge` | `termTypes`: `x.get` → `Animal`, `pick(x)` → `Dog` for `x: I[Dog] with I[Cat]` | §3: existential merge for invariant arguments |
-| 33 | `block-local-existentials` | `termTypes`: `inv` → `Ref[_ <: Tree with Singleton]`, `ref` → `Ref[_ <: Base]`, `cls` → `Base`, `lc` → `AnyRef{def me: this.type}` | §6: type avoidance beyond singletons |
-| 34 | `cake-lub-prefix` | `termTypes`: the cake `l(c)` → `global.Symbol`; `if (c) new a.Tree else new b.Tree` → `G#Tree` | §4: lub keeps the path; prefix lub |
-| 35 | `intersection-order` | conformance `Inv[Cat with Dog] <: Inv[Dog with Cat]` = true (both ways); equivalence `=:=` = false; `Cat with Dog =:= Dog with Cat` = false | §3: order visible to `=:=`, invisible to `<:` |
-| 36 | `lub-associativity` | `termTypes`: `nary` vs `foldL` (different refinements) | §4: n-ary vs pairwise lub |
-| 37 | `self-type-spelling` | `termTypes` at an anchor inside `trait Definitions { self: SymbolTable => }`: `sym` → `Definitions.this.Symbol`, `this` → `SymbolTable`; in `Impl { self: Api => }`, `this` → `Impl with Api` | §7: spelling after the using class; choice of glb |
+| Entry | Probes (scalac answer) | Pins down |
+|---|---|---|
+| [`18-multipath-base-type`](corpus/18-multipath-base-type) (reworked) | `(L with R) baseType Box` = `Box[Cat with Dog]`, yet `L with R <: Box[Dog with Cat]` is false; `LS with RS` at `Sink` = `Sink[Animal]`; legal templates `LRB extends L with R with Box[Dog with Cat]` | The variance merge, on a legal program; `<:` doesn't use the merge (§3) |
+| [`29-asf-outer-type-param`](corpus/29-asf-outer-type-param) | `c.f` → `java.lang.String` | Owner chain before base types; the SLS reading gives `Int` (§2(b)) |
+| [`30-asf-unstable-prefix`](corpus/30-asf-unstable-prefix) | `mk().arr` → `scala.Array[_1] forSome { type _1 >: scala.Nothing <: X with scala.Singleton }`; `mk().self` → `X` | `captureThis` for unstable prefixes (§2(c)) |
+| [`31-singleton-rebind-val`](corpus/31-singleton-rebind-val) | `b.get` → `Use.this.b.x.type`; `b.x.type <: String`; `b.get.length` → `scala.Int` | `rebind` for a plain `val` override (§1); complements 21 |
+| [`32-compound-invariant-merge`](corpus/32-compound-invariant-merge) | `(I[Dog] with I[Cat]) baseType I` = `I[_1] forSome { type _1 >: Cat with Dog <: Animal }`; `x.get` → `Animal`; `pick(x)` → `Dog` | Existential merge for invariant arguments (§3) |
+| [`33-block-local-existentials`](corpus/33-block-local-existentials) | `Ref[_1] forSome { type _1 >: scala.Nothing <: Tree with scala.Singleton }`, `Ref[_1] forSome { type _1 >: scala.Nothing <: Base }`, `Base`, `java.lang.Object { def me: this.type }` | Type avoidance beyond singletons (§6) |
+| [`34-cake-lub-prefix`](corpus/34-cake-lub-prefix) | cake siblings → `Use.this.global.Symbol`; `a.Tree`/`b.Tree` → `G#Tree` | lub keeps the path; prefix lub (§4) |
+| [`35-intersection-order`](corpus/35-intersection-order) | `Cat with Dog` ⇄ `Dog with Cat` and `Inv[…]` of them: `<:` both ways, not `=:=` | Order visible to `=:=`, invisible to `<:` (§3) |
+| [`36-lub-associativity`](corpus/36-lub-associativity) | n-ary `match` ≠ left-nested `if` (an extra nested `iterableFactory` refinement); right-nested `if` = `match` | n-ary vs pairwise lub (§4) |
+| [`37-self-type-spelling`](corpus/37-self-type-spelling) | `sym` → `Definitions.this.Symbol`; `foo` → `Definitions.this.Type`; `this` → `Impl with Api` / `SymbolTable` | Spelling after the using class; choice of glb (§7) |
 
-Sketch for 29:
+Corpus 27's comment now describes the 2.13 mechanism (section 2(a)) instead of 2.10's `toPrefix`.
 
-```scala
-// Concept: asSeenFrom of an OUTER class type parameter through an inner class that
-// re-extends the outer class with a different argument. scalac walks the owner chain
-// (C, then D) before consulting D's base types, so `A` is the outer instance's
-// argument (String), not the inner re-extension's (Int). SPEC-GAPS.md §2(b).
-class D[A](val a: A) { class C extends D[Int](1) { def f: A = D.this.a } }
-object Use {
-  val d = new D[String]("s")
-  val c = new d.C
-  /*ANCHOR inUse*/
-}
-```
-
-```json
-{
-  "description": "asSeenFrom of an outer class type parameter through an inner class re-extending the outer (SPEC-GAPS §2b): c.f is String, not Int.",
-  "concepts": ["asSeenFrom", "type-parameter", "inner-class", "owner-chain"],
-  "types": [],
-  "conformance": [],
-  "baseTypeSeq": [],
-  "termTypes": [ { "name": "cf", "expr": "c.f", "anchor": "inUse" } ]
-}
-```
-
-Corpus 27's comment should also be updated: in 2.13 the re-anchoring comes from `foo` being inferred as `Definitions.this.Type` and then matched exactly by `thisTypeAsSeen`. `toPrefix`'s subclass branch is 2.10 code (section 2(a)).
+Not yet covered: a guard in the reference engine against illegal preambles. The engine stops after typer, which is how corpus 18 went unnoticed. Running it through `refchecks` would catch that.
