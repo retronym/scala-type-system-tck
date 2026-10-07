@@ -168,8 +168,13 @@ produce. A `RenderedType` is a string built by these rules:
 - **Type application**: `Name[Arg₁, …, Argₙ]`, arguments rendered recursively.
 - **Refinement**: `Parent { decls }` with `decls` sorted by name; each `type X`
   rendered as `type X = T` / `type X >: L <: U`, each `def`/`val` by signature.
-- **Singleton / path-dependent**: `p.type` where `p` is the rendered stable path;
-  `this` is normalized to the enclosing corpus symbol's name.
+- **Singleton / path-dependent**: `p.type` where `p` is the rendered stable path
+  (`Use.this.b.x.type`, not just the member); `this` is normalized to the
+  enclosing corpus symbol's name. The this-type of a refinement class is `this.type`.
+- **Existentials**: `T forSome { type _1 >: L <: U; ... }`, with the quantifiers
+  alpha-normalized to `_1`, `_2`, ... in order of appearance (scalac's own names,
+  such as `_1.type` or a captured local's name, are implementation detail), and
+  bounds always written out (`>: scala.Nothing <: scala.Any` for `_`).
 - **Type aliases are dealiased** before rendering, so `String` and
   `Predef.String` both render to their dealiased form. (baseTypeSeq elements are
   class types, so this mainly affects query *inputs*.)

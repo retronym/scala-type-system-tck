@@ -214,9 +214,13 @@ object ScalacEngine extends TckEngine {
       case _ => None
     }
 
+    val existentialNames = scala.collection.mutable.LinkedHashMap[Symbol, String]()
+
     def go(t: Global#Type): String = t.asInstanceOf[g.Type].dealias match {
       case TypeRef(_, sym, args) if sym.isRefinementClass =>
         go(sym.info) // expand the refinement structurally
+      case TypeRef(_, sym, Nil) if sym.isExistential =>
+        existentialNames.getOrElse(sym, sym.name.toString.trim)
       case TypeRef(pre, sym, args) =>
         val base = prefixStr(pre) match {
           case Some(p) => s"$p.${sym.name.toString.trim}"
@@ -227,9 +231,24 @@ object ScalacEngine extends TckEngine {
         val ps = parents.map(go).mkString(" with ")
         val ds = decls.toList.sortBy(_.name.toString).map(renderDecl).mkString("; ")
         if (ds.isEmpty) ps else s"$ps { $ds }"
-      case SingleType(_, sym)  => s"${renderSym(sym)}.type"
+      case st @ SingleType(_, sym) =>
+        // keep the path (`Use.this.b.x.type`), not just the member's owner
+        s"${prefixStr(st).getOrElse(renderSym(sym))}.type"
+      case ThisType(sym) if sym.isRefinementClass => "this.type"
       case ThisType(sym)       => s"${renderSym(sym)}.this.type"
       case TypeBounds(lo, hi)  => s">: ${go(lo)} <: ${go(hi)}"
+      case ExistentialType(quantified, underlying) =>
+        // alpha-normalize: scalac's quantifier names (`_1.type`, `X.type`, `C`) are
+        // implementation detail, so number them by position.
+        quantified.foreach(q => existentialNames(q) = s"_${existentialNames.size + 1}")
+        val qs = quantified.map { q =>
+          val nm = existentialNames(q)
+          q.info match {
+            case TypeBounds(lo, hi) => s"type $nm >: ${go(lo)} <: ${go(hi)}"
+            case other              => s"type $nm = ${go(other)}"
+          }
+        }
+        s"${go(underlying)} forSome { ${qs.mkString("; ")} }"
       case other               => other.toString
     }
 
