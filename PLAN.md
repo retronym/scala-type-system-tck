@@ -92,6 +92,7 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Corpus 34: lub keeps the path prefix — `lub(global.TypeSymbol, global.TermSymbol) = global.Symbol`; `lub(a.Tree, b.Tree) = G#Tree`.
 - [x] Corpus 35: intersection component order — `Cat with Dog` / `Dog with Cat` and `Inv[...]` of them conform both ways but are not `=:=`.
 - [x] Corpus 36: lub is not associative — an n-ary `match` over `List`/`Vector`/`Set` differs from the left-nested `if`.
+- [x] Corpus 37: self-type spelling — self-type members are spelled after the using class (`Definitions.this.Symbol`); `this` is `Impl with Api`, or `SymbolTable` when the self type extends the class.
 
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
