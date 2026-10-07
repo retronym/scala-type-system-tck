@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters._
 import upickle.default._
 
-/** A rendered type in the TCK canonical normal form (SPEC §4). */
+/** A rendered type in the TCK canonical normal form (docs/TCK.md §4). */
 object RenderedType {
   type T = String
 }
@@ -71,7 +71,7 @@ case class Golden(
     equivalence: List[EquivalenceResult] = Nil,
     baseTypeSeq: Map[String, List[RenderedType.T]],
     // Linearization `baseClasses` (mixin-order sensitive) — the ordered list of
-    // base-class names. Distinct from baseTypeSeq order (SPEC §2). Defaulted so
+    // base-class names. Distinct from baseTypeSeq order (docs/SPEC-GAPS.md §3). Defaulted so
     // older goldens without it still parse.
     baseClasses: Map[String, List[String]] = Map.empty,
     // Inferred type of each term probe (member resolution / asSeenFrom result).
@@ -96,16 +96,16 @@ trait TckEngine {
   /** Resolve every named type in the entry within the source preamble's scope. */
   def load(loaded: LoadedEntry): Ctx
 
-  /** Is the type named `lhs` a subtype of the type named `rhs`? (SPEC §5) */
+  /** Is the type named `lhs` a subtype of the type named `rhs`? (docs/SPEC-GAPS.md §5) */
   def conforms(ctx: Ctx, lhs: String, rhs: String): Boolean
 
   /** Is the type named `lhs` equivalent (`=:=`) to the type named `rhs`? */
   def equiv(ctx: Ctx, lhs: String, rhs: String): Boolean
 
-  /** The base type sequence of the named type, as canonical RenderedTypes (SPEC §3). */
+  /** The base type sequence of the named type, as canonical RenderedTypes (docs/SPEC-GAPS.md §3). */
   def baseTypeSeq(ctx: Ctx, typeName: String): List[RenderedType.T]
 
-  /** The linearization `baseClasses` of the named type, as ordered class names (SPEC §2). */
+  /** The linearization `baseClasses` of the named type, as ordered class names (docs/SPEC-GAPS.md §3). */
   def baseClasses(ctx: Ctx, typeName: String): List[String]
 
   /** The inferred type of the term probe named `name` (member/asSeenFrom result). */

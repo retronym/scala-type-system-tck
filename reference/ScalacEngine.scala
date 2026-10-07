@@ -9,7 +9,7 @@ import scala.tools.nsc.{Global, Settings}
 /**
  * Reference engine: embeds `scala.tools.nsc.Global` and reads conformance and
  * baseTypeSeq directly from the compiler. This is the oracle that goldens are
- * generated from (SPEC §1).
+ * generated from (docs/TCK.md).
  *
  * Each corpus entry is compiled in a fresh Global (entries all define the same
  * synthetic `__tck.Corpus` module, so they must not share a symbol table).
@@ -194,7 +194,7 @@ object ScalacEngine extends TckEngine {
     } else sym.fullName
   }
 
-  // --- canonical rendering (SPEC §4) ---
+  // --- canonical rendering (docs/TCK.md §4) ---
 
   def render(ctx: Ctx, tp0: Global#Type): String = {
     val g = ctx.global

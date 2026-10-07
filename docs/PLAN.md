@@ -1,34 +1,13 @@
 # PLAN — scala-type-system-tck
 
-A Technology Compatibility Kit for Scala's type system: a progressive corpus of
-type definitions plus conformance and base-type-sequence queries, runnable
-against the Scala compiler (reference oracle) and the IntelliJ Scala plugin's PSI
-type system (system under test).
-
-See [SPEC.md](../SPEC.md) for the type-system specification this validates.
-
-## Architecture
-
-- **Corpus** = language-neutral data. Each entry is a directory under `corpus/`:
-  - `source.scala` — the preamble (type/class/trait declarations).
-  - `tck.json` — `description`, `concepts`, `types` (each `{name, expr, anchor?}`),
-    `conformance` queries (with human `expect`), `baseTypeSeq` query list.
-  - **Anchors**: context-dependent types (`this.type`, `this.T`, self-type
-    references) name a `/*ANCHOR id*/` marker in `source.scala`; the engine
-    resolves the expression at that marker's lexical context. See SPEC §4a.
-  - `expected.json` — **generated** goldens: baseTypeSeq results as canonical
-    `RenderedType` lists, plus the scalac conformance results.
-- **TckEngine** (abstract) — `conforms`, `baseTypeSeq`, `render`. Two impls:
-  - `ScalacEngine` (this repo) — embeds `scala.tools.nsc.Global`. **Reference.**
-  - `IntellijPsiEngine` (in the intellij-scala repo) — `ScType`, `conforms`,
-    `bts`. Consumes the same corpus data + goldens.
-- **Canonical rendering** (SPEC §4) is the cross-engine contract.
+Status and roadmap. The contract (corpus format, rendering, checks) is [TCK.md](TCK.md); the semantics are [SPEC-GAPS.md](SPEC-GAPS.md).
 
 ## Status
 
 ### Done
 - [x] Project skeleton, git init, scala-cli reference module.
-- [x] SPEC.md — the missing spec (conformance + baseTypeSeq construction).
+- [x] SPEC.md — the missing spec (conformance + baseTypeSeq construction); later
+      folded into TCK.md (contract) and SPEC-GAPS.md §3 (semantics).
 - [x] Corpus format + loader (upickle).
 - [x] `TckEngine` abstraction + `RenderedType`.
 - [x] `ScalacEngine` (embedded Global): resolve type strings, conforms, baseTypeSeq, render.
@@ -61,7 +40,7 @@ See [SPEC.md](../SPEC.md) for the type-system specification this validates.
       Loads this corpus directly from `~/code/scala-type-system-tck` (Gson),
       splices `__q_` aliases (anchors via lexical placement), reads
       `ScTypeAliasDefinition.aliasedType`, runs `conforms` (hard) + `BaseTypes.get`
-      (set membership vs golden). Renderer normalizes `canonicalText` to SPEC §4.
+      (set membership vs golden). Renderer normalizes `canonicalText` to TCK.md §4.
       Note: `BaseTypes.get` is **unordered** (`HashMap.values`) — order can't be
       checked yet; membership only.
 - [x] Corpus 16–21: member-type / asSeenFrom + singleton val-path-through-refinement
@@ -79,7 +58,7 @@ See [SPEC.md](../SPEC.md) for the type-system specification this validates.
       (representation seam; conformance/`=:=` is correct).
 
 ### SPEC-GAPS.md follow-ups (SLS 2.13 gap analysis)
-- [x] [SPEC-GAPS.md](../SPEC-GAPS.md): what the SLS specifies vs what only scalac defines,
+- [x] [SPEC-GAPS.md](SPEC-GAPS.md): what the SLS specifies vs what only scalac defines,
       for memberType, asSeenFrom, base types, lub, path equivalence, packedType, self types.
 - [x] Corpus 18 made legal: the multi-path merge now goes through compound types
       (`L with R`); `trait LR extends L with R` was rejected by scalac at refchecks
@@ -98,16 +77,16 @@ See [SPEC.md](../SPEC.md) for the type-system specification this validates.
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
       set) can be checked — the crux of the residual SCL-21585/21947 ordering bug.
 - [ ] Tighten canonical rendering for refinements / existentials / singletons.
-- [ ] L1–L4 invariant checks in the runner.
-- [ ] Depth/approximation-seam recording (SPEC §3.3) in goldens.
-- [ ] Scala 3 reference engine (SPEC §7).
+- [ ] Linearization invariant checks in the runner: the type itself first, each class
+      once, every class before its proper base classes, `Any` last.
+- [ ] Depth/approximation-seam recording (SPEC-GAPS.md §3, Depth) in goldens.
+- [ ] Scala 3 reference engine (see Open questions).
 - [ ] Consume the corpus as a build dependency (unpack in the build) rather than
       referencing the sibling checkout.
 - [x] CI: verify (ground truth + legality through refchecks + golden drift), munit,
       and regenerate-and-diff of all goldens (`.github/workflows/ci.yml`).
 
-## Conventions
-- Corpus entries are numbered and **progressive**: each introduces one new concept
-  on top of the previous. A failing early entry should explain later failures.
-- Goldens are committed and regenerated via `Main generate`; drift is a test
-  failure.
+## Open questions
+
+- **Scala 3.** Dotty has no `BaseTypeSeq`; it computes `baseType(cls)` on demand and linearization via `baseClasses`. A Scala 3 reference engine would derive the sequence as `baseClasses.map(baseType)`. We must also confirm that IntelliJ applies Scala 3 semantics, not Scala 2's, to Scala 3 sources.
+- **Higher-kinded base types** (`F[_]` parents): merge variance interacts with kind; corpus coverage pending.

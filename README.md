@@ -1,58 +1,36 @@
 # scala-type-system-tck
 
-A Technology Compatibility Kit for Scala's type system. It pins down two
-operations — **conformance** (`A <:< B`) and **base type sequences**
-(`baseTypeSeq(A)`) — with a progressive corpus of type definitions and queries,
-and runs them against two implementations:
+A Technology Compatibility Kit for Scala 2.13's type system. A corpus of small programs, each paired with type-system questions, is answered by two implementations and the answers are compared:
 
-- the **Scala compiler** (`scala.tools.nsc.Global`), used as the reference oracle;
-- the **IntelliJ Scala plugin** PSI type system (in the intellij-scala repo), the
-  system under test.
+- the **Scala compiler** (`scala.tools.nsc.Global`), the reference oracle, which generates the goldens;
+- the **IntelliJ Scala plugin**'s PSI type system (in intellij-scala), the system under test.
 
-It exists to track down divergences such as
-[SCL-21585](https://youtrack.jetbrains.com/issue/SCL-21585) and
-[SCL-21947](https://youtrack.jetbrains.com/issue/SCL-21947), where IntelliJ's
-`baseTypeSeq` ordering / refinement substitution differs from scalac's.
+The questions are conformance (`A <: B`), equivalence (`A =:= B`), base type sequences and linearization, `prefix baseType C`, and the inferred type of an expression. The TCK exists to find divergences such as [SCL-21585](https://youtrack.jetbrains.com/issue/SCL-21585) and [SCL-21947](https://youtrack.jetbrains.com/issue/SCL-21947), path-dependent and self-type false errors in the cake pattern.
+
+## Documentation
+
+- [docs/TCK.md](docs/TCK.md): the contract. The corpus entry format, anchors, the rendering normal form, what is checked, and how to add an entry.
+- [docs/SPEC-GAPS.md](docs/SPEC-GAPS.md): the semantics. What the Scala Language Specification says about each operation the corpus exercises, what it leaves open, and what scalac actually does.
+- [docs/PLAN.md](docs/PLAN.md): status and roadmap.
 
 ## Layout
 
 ```
-SPEC.md                     the "missing spec": conformance + baseTypeSeq construction
-docs/PLAN.md                status and roadmap
 corpus/NN-name/
-  source.scala              the type-declaration preamble
-  tck.json                  named type expressions + conformance/baseTypeSeq queries
-  expected.json             generated goldens (scalac oracle)
-reference/                  scala-cli module: the scalac reference engine
+  source.scala      the preamble: Scala declarations, with /*ANCHOR id*/ markers
+  tck.json          the queries, with human-authored expectations
+  expected.json     generated goldens (scalac's answers)
+reference/          scala-cli module: the scalac reference engine and CLI
+docs/               contract, semantics, plan
 ```
-
-The corpus is **language-neutral data**. A type is referenced abstractly by a
-*type-expression string* resolved in the preamble's scope — scalac resolves it as
-a `type` alias, IntelliJ via `createTypeElementFromText`. Context-dependent types
-(`this.type`, `this.T`, self-type references) name a `/*ANCHOR id*/` marker in
-`source.scala` and are resolved at that location (see SPEC §4a). The same corpus
-and goldens drive both engines (see `TckEngine` in `reference/Tck.scala`).
 
 ## Usage
 
 ```bash
+scala-cli run  reference -- verify       # legality, ground truth, golden drift
 scala-cli run  reference -- generate     # (re)write expected.json goldens
-scala-cli run  reference -- verify       # check conformance + golden drift
 scala-cli run  reference -- show 03-projection-hlist
-scala-cli test reference                 # munit: corpus vs ground truth + goldens
+scala-cli test reference                 # the same checks as munit tests
 ```
 
-`verify` also checks that every entry is a legal program: the preamble with its spliced queries must compile through `refchecks`, because the engine itself stops after typer, which accepts some programs scalac rejects (see [SPEC-GAPS.md](SPEC-GAPS.md) §3). CI (`.github/workflows/ci.yml`) runs `verify`, the munit tests, and a drift check that regenerates every golden and fails on any difference.
-
-## How a corpus entry works
-
-`tck.json` lists named types as Scala type expressions and asserts conformance
-with **human-authored** ground truth; baseTypeSeq expectations are captured into
-`expected.json` from the compiler. The reference engine wraps the preamble plus
-one `type __q_<name> = <expr>` alias per named type into a synthetic
-`__tck.Corpus` object, compiles it up to typer, and reads `<:<` and
-`.baseTypeSeq` off the live types, rendering each via the canonical normal form
-in [SPEC.md §4](SPEC.md).
-
-Adding an entry: create `corpus/NN-name/{source.scala,tck.json}`, run
-`generate`, eyeball the golden, commit.
+CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `verify`, the munit tests, and a drift check that regenerates every golden and fails on any difference.
