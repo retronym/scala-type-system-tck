@@ -18,7 +18,7 @@ It exists to track down divergences such as
 
 ```
 SPEC.md                     the "missing spec": conformance + baseTypeSeq construction
-PLAN.md                     status and roadmap
+docs/PLAN.md                status and roadmap
 corpus/NN-name/
   source.scala              the type-declaration preamble
   tck.json                  named type expressions + conformance/baseTypeSeq queries

@@ -9,7 +9,7 @@
 //     order (D/D2, B, C, A, Object, Any).
 // The goldens below capture baseTypeSeq. Capturing the linearization-order
 // divergence (the real residual-ordering surface) needs a `baseClasses` query —
-// see PLAN.md / SPEC §2.
+// see docs/PLAN.md / SPEC §2.
 trait A
 trait B extends A
 trait C extends A

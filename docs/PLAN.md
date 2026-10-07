@@ -5,7 +5,7 @@ type definitions plus conformance and base-type-sequence queries, runnable
 against the Scala compiler (reference oracle) and the IntelliJ Scala plugin's PSI
 type system (system under test).
 
-See [SPEC.md](SPEC.md) for the type-system specification this validates.
+See [SPEC.md](../SPEC.md) for the type-system specification this validates.
 
 ## Architecture
 
@@ -79,7 +79,7 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
       (representation seam; conformance/`=:=` is correct).
 
 ### SPEC-GAPS.md follow-ups (SLS 2.13 gap analysis)
-- [x] [SPEC-GAPS.md](SPEC-GAPS.md): what the SLS specifies vs what only scalac defines,
+- [x] [SPEC-GAPS.md](../SPEC-GAPS.md): what the SLS specifies vs what only scalac defines,
       for memberType, asSeenFrom, base types, lub, path equivalence, packedType, self types.
 - [x] Corpus 18 made legal: the multi-path merge now goes through compound types
       (`L with R`); `trait LR extends L with R` was rejected by scalac at refchecks
