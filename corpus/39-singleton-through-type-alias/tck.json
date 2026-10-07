@@ -17,7 +17,8 @@
   ],
   "equivalence": [
     { "lhs": "TUSymbol", "rhs": "STSymbol", "expect": true },
-    { "lhs": "TUSTSymbol", "rhs": "STSymbol", "expect": true }
+    { "lhs": "TUSTSymbol", "rhs": "STSymbol", "expect": true },
+    { "lhs": "STType", "rhs": "TUSTType", "expect": true }
   ],
   "baseTypeSeq": [],
   "termTypes": [

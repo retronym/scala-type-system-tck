@@ -31,6 +31,11 @@
       "lhs": "TUSTSymbol",
       "rhs": "STSymbol",
       "holds": true
+    },
+    {
+      "lhs": "STType",
+      "rhs": "TUSTType",
+      "holds": true
     }
   ],
   "baseTypeSeq": {},
