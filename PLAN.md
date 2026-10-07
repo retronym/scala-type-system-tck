@@ -78,6 +78,13 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
       `Boolean` render difference is pinned in the PSI test's `Deferred.termType`
       (representation seam; conformance/`=:=` is correct).
 
+### SPEC-GAPS.md follow-ups (SLS 2.13 gap analysis)
+- [x] [SPEC-GAPS.md](SPEC-GAPS.md): what the SLS specifies vs what only scalac defines,
+      for memberType, asSeenFrom, base types, lub, path equivalence, packedType, self types.
+- [x] Corpus 18 made legal: the multi-path merge now goes through compound types
+      (`L with R`); `trait LR extends L with R` was rejected by scalac at refchecks
+      (the engine stops after typer). Pins that `<:<` doesn't use the merged base type.
+
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
       set) can be checked — the crux of the residual SCL-21585/21947 ordering bug.

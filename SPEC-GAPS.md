@@ -147,9 +147,9 @@ So for compound types the SLS says "error" and scalac merges. The merge rules (g
 
 **Depth.** `BaseTypeSeq` depth bounds and the approximation they imply are implementation only (SPEC.md §3.3).
 
-### Note for the TCK: corpus 18 is not a legal program
+### Note for the TCK: corpus 18 was not a legal program
 
-`18-multipath-base-type` declares `trait LR extends L with R` with `L extends Box[Dog]`, `R extends Box[Cat]` (and the `Sink` analogue). scalac rejects both at refchecks. The reference engine stops after typer, so the goldens (`Box[Cat with Dog]`, `Sink[Animal]`) record typer's provisional merge for a program that does not compile. All other corpus preambles compile cleanly through the full compiler (checked by wrapping each `source.scala` in an object). Suggested fix: express the merge with compound types (`Box[Dog] with Box[Cat]`), which is legal and exercises the same `mergePrefixAndArgs` path, and keep a class-template variant that adds `with Box[Dog with Cat]`. A cheap guard against this happening again would be for the reference engine to run through `refchecks` and fail on errors. For the same reason, "`Box[Dog]` and `Box[Cat]` merge to `Box[Dog with Cat]`" in the PR description holds for compound types. For class parents, scalac reports an error.
+`18-multipath-base-type` used to declare `trait LR extends L with R` with `L extends Box[Dog]`, `R extends Box[Cat]` (and the `Sink` analogue). scalac rejects both at refchecks. The reference engine stops after typer, so the goldens recorded typer's provisional merge for a program that does not compile. All the other corpus preambles compile cleanly through the full compiler (checked by wrapping each `source.scala` in an object). The entry now expresses the merge with compound types (`L with R`), which is legal and exercises the same `mergePrefixAndArgs` path, plus class templates that name the merged instance explicitly (`LRB extends L with R with Box[Dog with Cat]`). For the same reason, "`Box[Dog]` and `Box[Cat]` merge to `Box[Dog with Cat]`" in the PR description holds for compound types. For class parents, scalac reports an error.
 
 ## 4. Least upper bound
 
@@ -284,7 +284,7 @@ Each entry follows the existing format (`source.scala`, `tck.json` with `types`,
 
 | # | Name | Probes (scalac answer) | Pins down |
 |---|---|---|---|
-| fix 18 | `18-multipath-base-type` | Recast with compound types `Box[Dog] with Box[Cat]` (`baseType` = `Box[Cat with Dog]`), `Sink[Dog] with Sink[Cat]` (`Sink[Animal]`); class-template variant `LRB extends L with R with Box[Dog with Cat]` | The variance merge, on a legal program |
+| fix 18 | `18-multipath-base-type` | Recast with compound types `L with R` (`baseType` = `Box[Cat with Dog]`, yet `<: Box[Dog with Cat]` is false), `LS with RS` (`Sink[Animal]`); class templates `LRB extends L with R with Box[Dog with Cat]` | The variance merge, on a legal program; merge not used by `<:` |
 | 29 | `asf-outer-type-param` | `termTypes`: `c.f` → `String` | §2(b): owner chain before base types |
 | 30 | `asf-unstable-prefix` | `termTypes`: `mk().arr` → `Array[_ <: X with Singleton]`; `mk().self` → `X` | §2(c): `captureThis`. Needs the existential rendering (SPEC §7) |
 | 31 | `singleton-rebind-val` | with `val b: B` at an anchor: `termTypes` `b.get` → `b.x.type`; conformance `b.x.type <: String` = true | §1: `rebind` for a plain `val` override (complements 21) |
