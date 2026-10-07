@@ -91,6 +91,7 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Corpus 33: type avoidance beyond singletons — block-local vals in invariant positions and block-local classes/objects pack existentially (SLS §6.11).
 - [x] Corpus 34: lub keeps the path prefix — `lub(global.TypeSymbol, global.TermSymbol) = global.Symbol`; `lub(a.Tree, b.Tree) = G#Tree`.
 - [x] Corpus 35: intersection component order — `Cat with Dog` / `Dog with Cat` and `Inv[...]` of them conform both ways but are not `=:=`.
+- [x] Corpus 36: lub is not associative — an n-ary `match` over `List`/`Vector`/`Set` differs from the left-nested `if`.
 
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
