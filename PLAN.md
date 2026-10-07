@@ -84,6 +84,7 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Corpus 18 made legal: the multi-path merge now goes through compound types
       (`L with R`); `trait LR extends L with R` was rejected by scalac at refchecks
       (the engine stops after typer). Pins that `<:<` doesn't use the merged base type.
+- [x] Corpus 29: asSeenFrom of an outer class type parameter through an inner class re-extending the outer — `c.f` is `String`; a literal SLS §3.4 reading gives an unsound `Int`.
 
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
