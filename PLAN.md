@@ -87,6 +87,7 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
 - [x] Corpus 29: asSeenFrom of an outer class type parameter through an inner class re-extending the outer — `c.f` is `String`; a literal SLS §3.4 reading gives an unsound `Int`.
 - [x] Corpus 30: `this.type` seen from an unstable prefix — `mk().arr` is `Array[_1] forSome { type _1 <: X with Singleton }` (scalac `captureThis`).
 - [x] Corpus 31: override-aware singleton path through a plain `val` override — `b.get: b.x.type`, which conforms to `String` (scalac `rebind`).
+- [x] Corpus 32: invariant same-class merge in a compound type — `I[Dog] with I[Cat]` has base type `I[_1] forSome { type _1 >: Cat with Dog <: Animal }`; `x.get: Animal`, `pick(x): Dog`.
 
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
