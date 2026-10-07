@@ -85,6 +85,7 @@ See [SPEC.md](SPEC.md) for the type-system specification this validates.
       (`L with R`); `trait LR extends L with R` was rejected by scalac at refchecks
       (the engine stops after typer). Pins that `<:<` doesn't use the merged base type.
 - [x] Corpus 29: asSeenFrom of an outer class type parameter through an inner class re-extending the outer — `c.f` is `String`; a literal SLS §3.4 reading gives an unsound `Int`.
+- [x] Corpus 30: `this.type` seen from an unstable prefix — `mk().arr` is `Array[_1] forSome { type _1 <: X with Singleton }` (scalac `captureThis`).
 
 ### TODO (next phases)
 - [ ] Order-preserving base-type API in IntelliJ so the sequence (not just the
