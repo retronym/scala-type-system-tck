@@ -2,8 +2,9 @@ package tck
 
 /**
  * Runs the whole corpus through the scalac reference engine and asserts:
- *  - conformance matches human-authored ground truth (validates the harness), and
- *  - baseTypeSeq matches the committed golden (regression / drift guard).
+ *  - the entry is a legal program (compiles through refchecks),
+ *  - conformance and equivalence match human-authored ground truth, and
+ *  - every recorded answer matches the committed golden (drift guard).
  *
  * The same assertions, with `IntellijPsiEngine` substituted, are how the plugin
  * is validated in the intellij-scala repo.
@@ -26,6 +27,16 @@ class ScalacTckTest extends munit.FunSuite {
       test(s"${e.id}: ${q.lhs} <:< ${q.rhs} == ${q.expect}") {
         assertEquals(r.holds, q.expect)
       }
+    }
+
+    e.entry.equivalence.zip(actual.equivalence).foreach { case (q, r) =>
+      test(s"${e.id}: ${q.lhs} =:= ${q.rhs} == ${q.expect}") {
+        assertEquals(r.holds, q.expect)
+      }
+    }
+
+    test(s"${e.id}: has a golden") {
+      assert(Corpus.readGolden(e).isDefined, "no expected.json (run `generate`)")
     }
 
     Corpus.readGolden(e).foreach { g =>
