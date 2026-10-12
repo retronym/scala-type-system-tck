@@ -8,7 +8,7 @@ defaultTargets = ["TckLean"]
 [[require]]
 name = "intellij"
 git = "https://github.com/retronym/jvm-lang-models"
-rev = "f96a8fa6866c7671253cdf4e169855aa92067d0b"
+rev = "be62af45136b703bab3f4ab485990e7815ddc1b3"
 subDir = "packages/intellij"
 
 [[lean_lib]]
