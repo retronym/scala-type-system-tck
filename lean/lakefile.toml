@@ -1,6 +1,15 @@
-name = "AsSeenFrom"
+name = "tck-lean"
 version = "0.1.0"
-defaultTargets = ["AsSeenFrom"]
+defaultTargets = ["TckLean"]
+
+# The asSeenFrom model now lives in retronym/jvm-lang-models, package `intellij` (on top of the
+# shared `scala-types`). This project pins it and builds it, so the TCK's CI still checks the
+# model it relies on.
+[[require]]
+name = "intellij"
+git = "https://github.com/retronym/jvm-lang-models"
+rev = "be62af45136b703bab3f4ab485990e7815ddc1b3"
+subDir = "packages/intellij"
 
 [[lean_lib]]
-name = "AsSeenFrom"
+name = "TckLean"
